@@ -2,6 +2,7 @@
 
 基于 FastAPI 的 AI 智能助手后端服务，支持多轮对话、语音合成、长期/中期/短期记忆管理
 
+前端项目：[magellan_lover_front_end](https://github.com/magellan41/magellan_lover_front_end)
 
 ## 环境要求
 
@@ -69,7 +70,7 @@ cp config/user.md.example config/user.md
 | `/api/memory/...` | — | 记忆管理接口 |
 
 ## 项目结构
-
+```
 magellan_lover/
 ├── api/ # FastAPI 路由
 ├── config/ # 配置文件（含 .example 模板）
@@ -81,3 +82,5 @@ magellan_lover/
 ├── utils/ # 工具模块
 ├── main.py # 入口
 └── requirements.txt
+```
+
