@@ -1,0 +1,22 @@
+{
+  "platforms": [
+    {
+      "platform": "your_platform_name",
+      "base_url": "https://your-api-endpoint.com/v1",
+      "key_type": "env",
+      "api_key": "YOUR_API_KEY_ENV_VAR_NAME",
+      "models": [
+        {
+          "name": "your-model-name",
+          "input_type": ["text"],
+          "max_context_windows": 262114
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "chat": "your_platform_name/your-model-name",
+    "compact": "your_platform_name/your-model-name",
+    "memory": "your_platform_name/your-model-name"
+  }
+}

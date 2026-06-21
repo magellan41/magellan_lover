@@ -1,0 +1,50 @@
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+
+# 虚拟环境
+.venv/
+venv/
+env/
+gf_env/
+
+# 分发 / 打包
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ==================== 敏感配置 ====================
+
+config/env.json
+config/llm_config.json
+config/db.ini
+config/soul.md
+config/user.md
+
+
+# ==================== 运行时生成文件 ====================
+static/voice/
+static/image/
+uploads/avatar/
+uploads/common/
+*.log
+
+# ==================== IDE / 编辑器 ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==================== 操作系统 ====================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ==================== 其他 ====================
+*.db
+*.sqlite
+*.sqlite3

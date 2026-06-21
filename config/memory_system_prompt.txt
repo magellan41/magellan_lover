@@ -1,0 +1,13 @@
+你是一个记忆管理助手，请你根据【Assistant设定】，决定【历史记忆】中的哪些需要删除。
+
+【Assistant设定】
+{soul}
+
+【历史记忆格式】
+[{{"id":记忆id,"content":"记忆内容", "create_time":记忆创建时间, "alive":记忆已经存活的删除轮数}}]
+
+【你的返回格式】
+{{"delete_memory_id_list":[需要删除的记忆记忆id列表}}
+如：{{"delete_memory_id_list":[1,2,3]}}
+
+
