@@ -27,7 +27,7 @@ dialogue_history_orm_obj = DialogueHistoryOrm()
 @router.get("/api/chat/list/{min_id}", summary="获取聊天记录", description="每次返回100条，min_id 为上一次查询的最小 id，第一次调用时 min_id 为 -1")
 async def chat_list(min_id: int) -> ChatListResponse:
     conversation = dialogue_history_orm_obj.list(min_id)
-    conversation = [ChatMessageItem(role=item.role, type=item.type, content=item.content, time_stamp=item.create_time) for item in conversation]
+    conversation = [ChatMessageItem(id=item.id, role=item.role, type=item.type, content=item.content, time_stamp=item.create_time) for item in conversation]
     return ChatListResponse(data=conversation)
 
 

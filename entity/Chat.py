@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class ChatMessageItem(BaseModel):
+    id: int = Field(..., description="消息ID")
     role: str = Field(..., description="角色：user/assistant")
     type: str = Field(..., description="消息类型：text/image/voice")
     content: str = Field(..., description="消息内容")
