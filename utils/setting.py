@@ -24,10 +24,11 @@ def init(root_path):
     os.makedirs(ROUT_PATH, exist_ok=True)
     LLM_CONFIG_PATH = os.path.join(CONFIG_PATH, 'llm_config.json')
     DB_CONFIG_PATH = os.path.join(CONFIG_PATH, 'db.ini')
-    UPLOAD_PATH = os.path.join(root_path, 'uploads')
-    os.makedirs(UPLOAD_PATH, exist_ok=True)
+
     STATIC_PATH = os.path.join(root_path, "static")
     os.makedirs(STATIC_PATH, exist_ok=True)
+    UPLOAD_PATH = os.path.join(STATIC_PATH, 'uploads')
+    os.makedirs(UPLOAD_PATH, exist_ok=True)
     VOICE_PATH = os.path.join(STATIC_PATH, "voice")
     os.makedirs(VOICE_PATH, exist_ok=True)
     IMAGE_PATH = os.path.join(STATIC_PATH, "image")

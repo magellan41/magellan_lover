@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import logging
 
-from utils.agents import agents
+from utils.agent_util import agents
 
 logger = logging.getLogger(__name__)
 

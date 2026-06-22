@@ -9,7 +9,7 @@ from utils import setting
 
 import logging
 
-from utils.agents import init_agents
+from utils.agent_util import init_agents
 
 logger = logging.getLogger(__name__)
 

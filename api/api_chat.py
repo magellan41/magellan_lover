@@ -8,7 +8,7 @@ from starlette.responses import StreamingResponse
 from entity.Chat import ChatMessageItem, ChatListResponse
 from orm.dialog_history_orm import DialogueHistoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
-from utils import agents, common_util
+from utils import agent_util, common_util
 
 import logging
 
@@ -43,7 +43,7 @@ async def trigger_agent(messages: list[str], message_type: str = "user"):
     """调用 Agent"""
 
     # 调用 Agent 获取完整响应
-    chat_agent = agents.agents["chat"]
+    chat_agent = agent_util.agents["chat"]
     response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
     data = common_util.safe_json_loads(response_data)
     content = data.get("content", "")

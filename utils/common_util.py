@@ -10,6 +10,12 @@ def message_argument_before_add(messages, message_type="user"):
 
 def safe_json_loads(text: str):
     """安全解析 JSON，兼容 LLM 返回的包含未转义控制字符的 JSON"""
+    text = text.strip()
+    if text.startswith("```json"):
+        text = text[8:]
+    if text.endswith("```"):
+        text = text[:-3]
+
     try:
         return json.loads(text)
     except json.JSONDecodeError:

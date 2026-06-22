@@ -8,11 +8,10 @@ from starlette.middleware.cors import CORSMiddleware
 
 from utils import setting
 
-
 # 初始化绝对路径
 setting.init(Path(__file__).parent)
 
-from utils.agents import init_agents
+from utils import agent_util
 
 
 # =============================日志配置=============================
@@ -65,7 +64,7 @@ from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory=setting.UPLOAD_PATH), name="uploads")
 app.mount("/static", StaticFiles(directory=setting.STATIC_PATH), name="static")
 
-agents = init_agents()
+agent_util.init_agents()
 
 
 

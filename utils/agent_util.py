@@ -8,9 +8,8 @@ from orm.long_term_memory_orm import LongTermMemoryOrm
 from orm.mid_term_memroy_orm import MidTermMemoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from utils.common_util import message_argument_before_add
-from utils.config_util import resolve_llm_config
 from utils.llm_util import Llm
-from utils import setting, env_util
+from utils import setting, env_util, llm_util, config_util
 
 logger = logging.getLogger(__name__)
 
@@ -138,33 +137,7 @@ class Agent:
 
 agents = {}
 
-def models_dic_get(llm_config):
-    """
-    获取模型字典
-    """
-    model_dic = {}
-    platforms = llm_config.get("platforms", [])
-    if len(platforms) == 0:
-        logger.error("缺少模型配置")
-        raise Exception("缺少模型配置")
-    
-    for platform in platforms:
-        models = platform.get("models", [])
-        if len(models) == 0:
-            logger.error("缺少模型配置")
-            raise Exception("缺少模型配置")
 
-        for model in models:
-            model_id = platform["platform"] + "/" + model["name"]
-            model_dic[model_id] = {
-                "base_url": platform.get("base_url"),
-                "api_key": platform.get("api_key"),
-                "key_type": platform.get("key_type"),
-                "model_name": model["name"],
-                "input_type": model.get("input_type"),
-                "max_context_windows": model.get("max_context_windows", 131072),
-            }
-    return model_dic
 
 
 def get_all_memory():
@@ -185,8 +158,9 @@ def get_all_memory():
 
 
 def init_agents():
-    llm_config = resolve_llm_config()
-    model_dic = models_dic_get(llm_config)
+    model_dic = llm_util.init_models()
+
+    llm_config = config_util.resolve_llm_config()
     agents_config = llm_config.get("agents", {})
     if len(agents_config) == 0:
         logger.error("缺少agents配置")
