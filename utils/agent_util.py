@@ -17,20 +17,54 @@ short_term_memory_orm_obj = ShortTermMemoryORM()
 mid_term_memory_orm_obj = MidTermMemoryOrm()
 long_term_memory_orm_obj = LongTermMemoryOrm()
 
-def estimate_tokens(text: str) -> int:
+def estimate_tokens(messages) -> int:
     """
     基于启发式规则的通用 Token 估算
     """
-    if not text:
+    if not messages:
         return 0
 
-    # 基础经验值：英文约 1 Token / 4 字符，中文约 1.5 Token / 字
-    # 此处采用保守估算，防止上下文压缩时超出窗口
-    cn_chars = sum(1 for char in text if '\u4e00' <= char <= '\u9fff')
-    other_chars = len(text) - cn_chars
+    total_cn_chars = 0
+    total_other_chars = 0
 
-    estimated_tokens = int(cn_chars * 1.5 + other_chars * 0.35)
-    return max(1, estimated_tokens)
+    if not isinstance(messages, list):
+        messages = [messages]
+
+    for msg in messages:
+        content = msg.get("content", "")
+
+        if isinstance(content, str):
+            text_to_count = content
+
+        elif isinstance(content, list):
+            text_parts = []
+            for item in content:
+                if item.get("type") == "text":
+                    text_parts.append(item.get("text", ""))
+                elif item.get("type") == "image_url":
+                    # 提取 Base64 数据参与字符统计
+                    url = item.get("image_url", {}).get("url", "")
+                    if url.startswith("data:"):
+                        base64_data = url.split(",", 1)[-1]
+                        text_parts.append(base64_data)
+            text_to_count = "".join(text_parts)
+        else:
+            continue
+
+        # 统计中英文字符数
+        cn_chars = sum(1 for char in text_to_count if '\u4e00' <= char <= '\u9fff')
+        other_chars = len(text_to_count) - cn_chars
+
+        total_cn_chars += cn_chars
+        total_other_chars += other_chars
+
+        # 基础经验值：中文约 1.5 Token / 字，英文/Base64 约 1 Token / 3~4 字符
+    estimated_tokens = int(total_cn_chars * 1.5 + total_other_chars * 0.35)
+
+    # 加上消息结构本身的开销（如 role, type 等系统级 Token）
+    structure_overhead = len(messages) * 5
+
+    return max(1, estimated_tokens + structure_overhead)
 
 
 class Agent:
@@ -42,9 +76,7 @@ class Agent:
         self.continuous_dialogue = continuous_dialogue
         self.max_context_windows = max_context_windows
 
-
-
-        self.total_tokens = estimate_tokens(self.system_prompt)
+        self.total_tokens = 0
         self.conversation = None
         self.init_conversation()
 
@@ -55,9 +87,12 @@ class Agent:
         self.conversation = [
             {"role": "system", "content": self.system_prompt}
         ]
+        self.total_tokens = estimate_tokens(self.conversation)
         history_dialogues = short_term_memory_orm_obj.get_original_memory()
         for dialogue in history_dialogues:
-            self.conversation.append({"role": dialogue.role, "content": dialogue.content})
+            # 用户消息解析
+            content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
+            self.conversation.append({"role": dialogue.role, "content": content})
             self.total_tokens += dialogue.tokens
         logger.debug(f"conversation: {self.conversation}, total_tokens: {self.total_tokens}")
 
@@ -66,10 +101,14 @@ class Agent:
     #         self.add_message(role, message)
 
     def add_message(self, role, message):
-        tokens = estimate_tokens(message)
-        short_term_memory_orm_obj.insert(role, message, tokens)
+        message_in_conversation = {"role": role, "content": message}
+        tokens = estimate_tokens(message_in_conversation)
         self.total_tokens += tokens
-        self.conversation.append({"role": role, "content": message})
+        self.conversation.append(message_in_conversation)
+        # 用户的消息是列表，需要转换为字符串
+        message_in_db = json.dumps(message, ensure_ascii=False) if role == "user" else message
+        logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
+        short_term_memory_orm_obj.insert(role, message_in_db, tokens)
 
 
 
@@ -99,7 +138,7 @@ class Agent:
             self.conversation = [
                 {"role": "system", "content": self.system_prompt}
             ]
-            self.total_tokens = estimate_tokens(self.system_prompt)
+            self.total_tokens = estimate_tokens(self.conversation)
 
         return res
 
@@ -114,11 +153,10 @@ class Agent:
         res = compact_agent.chat(str(compact_content), message_type="system")
         # 更新系统提示
         new_system_prompt = self.system_prompt + "【历史对话记录摘要】：\n" + res
-        # 计算新的 Token 数量
-        history_conversation_not_compact = self.conversation[self.conversation_not_in_compact_indx:]
-        self.total_tokens = estimate_tokens(new_system_prompt) + sum(estimate_tokens(message["content"]) for message in history_conversation_not_compact)
         # 新的对话记录
         self.conversation = [{"role": "system", "content": new_system_prompt}] + self.conversation[self.conversation_not_in_compact_indx:]
+        # 计算新的 Token 数量
+        self.total_tokens = estimate_tokens(self.conversation)
         # 标记压缩短期记忆数据
         short_term_memory_orm_obj.compact(compact_time)
         # 新增中期记忆

@@ -26,7 +26,7 @@ async def save_file_to_disk(file: UploadFile, file_parent_path: str = "uploads",
 
     return new_filename
 
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 ALLOWED_OWNER = {"user", "agent"}
 @router.post("/api/file/uploads/avatar/{owner}", summary="上传头像", description="上传用户头像或智能体头像,owner 可以是 user 或 agent, 头像格式只能是 png, jpg, jpeg, gif")
 async def upload_file(owner: str, file: UploadFile = File(...)):
@@ -55,15 +55,5 @@ async def upload_file(file: UploadFile = File(...)):
         "url": url
     }
 
-@router.post("/api/file/uploads/chat_image", summary="上传对话图片", description="上传对话图片, 格式只能是 png, jpg, jpeg, gif")
-async def upload_file(file: UploadFile = File(...)):
-    file_parent_path = os.path.join(setting.UPLOAD_PATH, "chat_image")
-    os.makedirs(file_parent_path, exist_ok=True)
-    new_filename = await save_file_to_disk(file, file_parent_path, allowed_extensions=ALLOWED_EXTENSIONS)
-    url = f'/static/uploads/chat_image/{new_filename}'
-    return {
-        "original_filename": file.filename,
-        "saved_filename": new_filename,
-        "url": url
-    }
+
 

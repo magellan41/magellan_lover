@@ -2,6 +2,7 @@ import datetime
 
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import DateTime
 
@@ -13,7 +14,7 @@ class ShortTermMemory(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     role = Column(String(10), nullable=False)
-    content = Column(Text, nullable=False)
+    content = Column(MEDIUMTEXT, nullable=False)
     send_time = Column(DateTime, nullable=False)
     status = Column(Integer, default=1)
     compact = Column(Integer, default=0)

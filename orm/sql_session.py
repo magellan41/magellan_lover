@@ -32,7 +32,7 @@ try:
             id INT AUTO_INCREMENT PRIMARY KEY,
             role CHAR(10) NOT NULL,
             send_time DATETIME NOT NULL,
-            content TEXT NOT NULL,
+            content MEDIUMTEXT NOT NULL,
             compact TINYINT(1) NOT NULL DEFAULT 0,
             status TINYINT(1) NOT NULL DEFAULT 1,
             tokens INT NOT NULL DEFAULT 0
