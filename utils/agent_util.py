@@ -4,12 +4,13 @@ import os
 import logging
 import threading
 
+from entity.config import RoughSchedule
 from orm.long_term_memory_orm import LongTermMemoryOrm
 from orm.mid_term_memroy_orm import MidTermMemoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from utils.common_util import message_argument_before_add
 from utils.llm_util import Llm
-from utils import setting, env_util, llm_util, config_util
+from utils import setting, env_util, llm_util, config_util, common_util
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +69,14 @@ def estimate_tokens(messages) -> int:
 
 
 class Agent:
-    def __init__(self, base_url, api_key, model_name, input_type, system_prompt, continuous_dialogue=False, max_context_windows=131072):
+    def __init__(self, base_url, api_key, model_name, input_type, system_prompt, agent_type, continuous_dialogue=False, max_context_windows=131072):
         self.llm = Llm(base_url, api_key, model_name)
 
         self.input_type = input_type
         self.system_prompt = system_prompt
         self.continuous_dialogue = continuous_dialogue
         self.max_context_windows = max_context_windows
+        self.agent_type = agent_type
 
         self.total_tokens = 0
         self.conversation = None
@@ -91,12 +93,13 @@ class Agent:
             {"role": "system", "content": self.system_prompt}
         ]
         self.total_tokens = estimate_tokens(self.conversation)
-        history_dialogues = short_term_memory_orm_obj.get_original_memory()
-        for dialogue in history_dialogues:
-            # 用户消息解析
-            content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
-            self.conversation.append({"role": dialogue.role, "content": content})
-            self.total_tokens += dialogue.tokens
+        if self.agent_type == "chat":
+            history_dialogues = short_term_memory_orm_obj.get_original_memory()
+            for dialogue in history_dialogues:
+                # 用户消息解析
+                content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
+                self.conversation.append({"role": dialogue.role, "content": content})
+                self.total_tokens += dialogue.tokens
         logger.debug(f"conversation: {self.conversation}, total_tokens: {self.total_tokens}")
 
     # def add_messages(self, role, messages):
@@ -117,7 +120,12 @@ class Agent:
 
     def chat(self, messages, message_type="user"):
         # logger.debug(f"chat: {self.continuous_dialogue}")
-        message = message_argument_before_add(messages, message_type)
+        if self.agent_type == "chat":
+            if isinstance(messages, str):
+                messages = [("text", messages)]
+            message = message_argument_before_add(messages, message_type)
+        else:
+            message = messages
         if self.continuous_dialogue:
             self.add_message("user", message)
         else:
@@ -235,14 +243,85 @@ def init_agents():
         system_prompt = system_prompt.format(max_compact_tokens=max_compact_tokens, mid_term_memory=mid_term_memory_str, long_term_memory=long_term_memory_str, soul=soul, user=user)
         logger.debug(model_config)
         agents_dic[agent_type] = Agent(model_config["base_url"],
-                                     api_key, model_config["model_name"],
-                                     model_config["input_type"],
-                                     system_prompt,
-                                     True if agent_type == "chat" else False,
-                                     model_config.get("max_context_windows"))
+                                       api_key,
+                                       model_config["model_name"],
+                                       model_config["input_type"],
+                                       system_prompt,
+                                       agent_type,
+                                       True if agent_type == "chat" else False,
+                                       model_config.get("max_context_windows"))
     global agents
     agents = agents_dic
     return agents_dic
+
+
+
+def create_rough_schedule(schedule_description: str):
+    story_agent: Agent|None = agents.get("story",None)
+    if not story_agent:
+        raise Exception("缺少story模型")
+
+    rough_schedule_prompt = f"""日程描述：{schedule_description}
+请根据日程描述，生成一个粗略的日程，你生成的粗略日期安排将会作为后续详细日程的参考。返回格式为：
+{{
+    "schedule_preferences": {{
+        "weekday": {{
+            "morning": 粗略早上的作息安排,
+            "afternoon": 粗略下午的作息安排,
+            "evening": 粗略晚上的作息安排
+        }},
+        "weekend": {{
+            "saturday": 粗略周六的作息安排,
+            "sunday": 粗略周日的作息安排
+        }}
+    }},
+    "special_rules": {{
+        "holiday": [
+            {{
+                "holiday_name": 假期名称,
+                "arrange": 假期的粗略安排
+            }}
+        ],
+    }}
+}}
+示例：
+{{
+    "schedule_preferences": {{
+        "weekday": {{
+            "morning": "9:00-12:00 通常是专注画画或处理商稿的时间，可能会有些焦虑",
+            "afternoon": "14:00-18:00 可能会摸鱼看展，或者去附近的咖啡馆找灵感",
+            "evening": "20:00以后 属于个人放松时间，可能会看老电影、撸猫或者听播客"
+        }},
+        "weekend": {{
+            "saturday": "倾向于睡到自然醒。下午大概率会去逛独立书店或看画展，晚上可能会约闺蜜小聚",
+            "sunday": "通常是宅家回血日，整理房间、给植物浇水，或者玩一整天主机游戏",
+        }}
+    }},
+    "special_rules": {{
+        "holiday": [
+            {{
+                "holiday_name": "元旦",
+                "arrange": "元旦假日通常没有事情，可能会有活动或休息"
+            }},
+            {{
+                "holiday_name": "春节",
+                "arrange": "春节假期里会去亲戚家里拜年，也可能会约好友小聚"
+            }}
+        ],
+    }}
+}}
+holiday需要包含的节假日包括："元旦"、"春节"、"清明节"、"劳动节"、"端午节"、"中秋节"、"国庆节"
+请你严格按照指定格式返回，请勿添加格式要求以外的其他内容,不要包含任何解释、问候或前缀（如“好的”、“以下是日程”等）。
+"""
+
+    rough_schedule_str = story_agent.chat(rough_schedule_prompt)
+    with open(os.path.join(setting.CONFIG_PATH, "rough_schedule.json"), "w", encoding="utf-8") as f:
+        f.write(rough_schedule_str)
+    logger.info(f"已生成粗略日程：{rough_schedule_str}")
+    data_dict = common_util.safe_json_loads(rough_schedule_str)
+    rough_schedule = RoughSchedule.model_validate(data_dict)
+
+    return rough_schedule
 
 
 

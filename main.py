@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 
@@ -27,12 +28,15 @@ logging.basicConfig(
 
 # =============================定时任务=============================
 from contextlib import asynccontextmanager
-from scheduler.system_scheduler import scheduler, init_scheduler
+from scheduler.system_scheduler import scheduler, init_scheduler, daily_schedule_task
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. 启动时：初始化并启动定时任务
     init_scheduler()
-
+    # 初始化每日日程表
+    await daily_schedule_task()
     yield  # FastAPI 主程序运行中...
 
     # 2. 关闭时：优雅地关闭定时任务
@@ -61,7 +65,7 @@ app.include_router(memory_router)
 app.include_router(file_router)
 
 from fastapi.staticfiles import StaticFiles
-app.mount("/uploads", StaticFiles(directory=setting.UPLOAD_PATH), name="uploads")
+# app.mount("/uploads", StaticFiles(directory=setting.UPLOAD_PATH), name="uploads")
 app.mount("/static", StaticFiles(directory=setting.STATIC_PATH), name="static")
 
 from utils import voice_generation
@@ -78,7 +82,7 @@ if __name__ == "__main__":
 
     # 对应：uvicorn main:app --reload --host 0.0.0.0 --port 8000
     uvicorn.run(
-        "main:app",
+        app,
         host="0.0.0.0",
         port=8000
     )

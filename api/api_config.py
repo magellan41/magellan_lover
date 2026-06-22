@@ -3,12 +3,12 @@ from typing import Dict, Any
 
 from fastapi import APIRouter, Body
 
-from entity.config import VoiceConfig
+from entity.config import VoiceConfig, RoughSchedule
 from utils import setting
 
 import logging
 
-from utils.agent_util import init_agents
+from utils.agent_util import init_agents, create_rough_schedule
 from utils import env_util
 from utils.voice_generation import init_voice_generation
 
@@ -66,6 +66,22 @@ async def set_voice_env_config(config: VoiceConfig = Body(..., description="agen
                             [config.voice_enable, config.voice_key_type, config.voice_api_key, config.voice_generation_type])
     init_voice_generation()
     return f"agent语音环境配置已重设"
+
+
+@router.get("/api/agent/schedule_description/get", summary="获取agent状态日程描述", description="获取agent状态日程描述")
+async def list_schedule_description() -> str:
+    with open(os.path.join(setting.CONFIG_PATH, "schedule_description.txt"), "r", encoding="utf-8") as f:
+        return f.read()
+
+
+
+@router.post("/api/agent/schedule_description/set", summary="设置agent状态日程描述", description="设置agent状态日程描述")
+async def set_schedule_description(content: str = Body(..., description="agent状态日程描述")) -> RoughSchedule:
+    with open(os.path.join(setting.CONFIG_PATH, "schedule_description.txt"), "w", encoding="utf-8") as f:
+        f.write(content)
+    rough_schedule = create_rough_schedule(content)
+    return rough_schedule
+
 
 
 

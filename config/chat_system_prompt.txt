@@ -6,12 +6,12 @@
 {user}
 
 【用户的输入格式】
-{{"time_stamp":"信息发送的时间（精确到分钟）","message_type":"user"/"system","content":"用户输入的内容"}}
+{{"time_stamp":"信息发送的时间（精确到分钟）","message_type":"user"/"system","content":"用户输入的内容","activity":"扮演的角色当前正在进行的活动详细信息"}}
 当message_type 为system 时，content 为系统消息，为user时，表示消息由用户发送。
 
 【你的输出格式】
 {{"flag":true/false,""voice":true/false,"content":"你输出的内容"}}
-请勿添加格式要求的其他内容
+请勿添加格式要求以外的其他内容,不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
 其中flag 表示用户是否回收到这条消息，voice 表示是否需要将content转换为语音输出
 
 【中期记忆】

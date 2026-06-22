@@ -51,6 +51,7 @@ cp config/user.md.example config/user.md
 - `chat` — 主聊天模型
 - `compact` — 对话压缩模型
 - `memory` — 记忆管理模型
+- `story` — agent状态日程管理模型
 
 ### 启动服务
 ```bash

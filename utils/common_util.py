@@ -6,6 +6,8 @@ import time
 
 from PIL import Image
 
+from orm.schedule_orm import DetailScheduleORM
+detail_schedule_orm_obj = DetailScheduleORM()
 
 def base64_encode(image_path):
     img = Image.open(image_path)
@@ -26,6 +28,8 @@ def base64_encode(image_path):
 
     return f"data:{mime_type};base64,{base64_str}"
 
+
+
 def message_argument_before_add(messages, message_type="user"):
     # message = r"\n\n".join(messages)
     # return f"{{\"time_stamp\": \"{time.strftime('%Y-%m-%d %H:%M CST', time.localtime())}\", \"message_type\": \"{message_type}\", \"content\": \"{message}\"}}"
@@ -38,7 +42,13 @@ def message_argument_before_add(messages, message_type="user"):
         elif message_type == "image":
             images.append(base64_encode(message_content))
     text = r"\n\n".join(text)
-    text = f"{{\"time_stamp\": \"{time.strftime('%Y-%m-%d %H:%M CST', time.localtime())}\", \"message_type\": \"{message_type}\", \"content\": \"{text}\"}}"
+
+    detail_schedule = detail_schedule_orm_obj.select_last()
+    activity = "无活动信息"
+    if detail_schedule:
+        activity =f"【活动名称】:{detail_schedule.activity}  【活动细节】:{detail_schedule.detail}"
+
+    text = f"{{\"time_stamp\": \"{time.strftime('%Y-%m-%d %H:%M CST', time.localtime())}\", \"message_type\": \"{message_type}\", \"content\": \"{text}\", \"activity\": \"{activity}\"}}"
     res = [
         {"type": "image_url", "image_url": {"url": image}} for image in images
     ] + [{"type": "text", "text": text}]
@@ -64,3 +74,4 @@ def safe_json_loads(text: str):
             text
         )
         return json.loads(fixed)
+

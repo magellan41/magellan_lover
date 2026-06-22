@@ -70,7 +70,30 @@ try:
             status TINYINT(1) NOT NULL DEFAULT 1
             )
         """)
-        logger.info(f"创建长期记忆表成功")
+        logger.info(f"创建对话历史展示表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_schedule (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            date TEXT NOT NULL,
+            daily_schedule TEXT NOT NULL
+            )
+        """)
+        logger.info(f"创建每日日程表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS detail_schedule (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            start_time DATETIME NOT NULL,
+            end_time DATETIME NOT NULL,
+            activity VARCHAR(20) NOT NULL,
+            detail TEXT NOT NULL,
+            create_time DATETIME NOT NULL
+            )
+        """)
+        logger.info(f"创建日程细节表成功")
+
+
 
     connection.commit()
 except Exception as e:
