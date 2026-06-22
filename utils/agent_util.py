@@ -83,6 +83,9 @@ class Agent:
         self.compact_running = threading.Event()
         self.conversation_not_in_compact_indx = -1
 
+    def could_input_image(self):
+        return self.input_type is not None and "image" in self.input_type
+
     def init_conversation(self):
         self.conversation = [
             {"role": "system", "content": self.system_prompt}

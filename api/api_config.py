@@ -1,13 +1,16 @@
 import os.path
+from typing import Dict, Any
 
 from fastapi import APIRouter, Body
 
+from entity.config import VoiceConfig
 from utils import setting
 
 import logging
 
 from utils.agent_util import init_agents
 from utils import env_util
+from utils.voice_generation import init_voice_generation
 
 logger = logging.getLogger(__name__)
 
@@ -49,4 +52,20 @@ async def list_env_config(key: str) -> str:
 async def set_env_config(key: str = Body(..., description="agent环境配置项"), value: str = Body(..., description="agent环境配置值")) -> str:
     env_util.write_env_var(key, value)
     return f"agent环境配置项{key}已重设为{value}"
+
+@router.get("/api/agent/voice/get", summary="获取agent语音环境配置", description="获取agent语音环境配置配置项voice_enable为字符串的true和false,表示是否开启语音输出功能, voice_key_type为字符串的env或str,表示语音api key的来源, voice_api_key为语音api key, voice_generation_type为语音合成类型目前只有minimax一个可选项")
+async def list_voice_env_config() -> dict:
+    res = env_util.read_env_vars(["voice_enable", "voice_key_type", "voice_api_key", "voice_generation_type"])
+    return res
+
+
+
+@router.post("/api/agent/voice/set", summary="设置agent语音环境", description="设置agent语音环境配置项")
+async def set_voice_env_config(config: VoiceConfig = Body(..., description="agent语音环境配置项")) -> str:
+    env_util.write_env_vars(["voice_enable", "voice_key_type", "voice_api_key", "voice_generation_type"],
+                            [config.voice_enable, config.voice_key_type, config.voice_api_key, config.voice_generation_type])
+    init_voice_generation()
+    return f"agent语音环境配置已重设"
+
+
 

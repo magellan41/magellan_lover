@@ -23,8 +23,8 @@ class DialogueHistoryOrm:
         session = sql_session.get_session()
         try:
             if min_id == -1:
-                return session.query(DialogueHistory).order_by(DialogueHistory.create_time.desc()).limit(100).all()
-            return session.query(DialogueHistory).filter(DialogueHistory.id < min_id).order_by(DialogueHistory.create_time.desc()).limit(100).all()
+                return session.query(DialogueHistory).order_by(DialogueHistory.create_time.desc()).limit(12).all()
+            return session.query(DialogueHistory).filter(DialogueHistory.id < min_id).order_by(DialogueHistory.create_time.desc()).limit(12).all()
         finally:
             session.close()
 

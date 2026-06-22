@@ -64,6 +64,11 @@ from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory=setting.UPLOAD_PATH), name="uploads")
 app.mount("/static", StaticFiles(directory=setting.STATIC_PATH), name="static")
 
+from utils import voice_generation
+# 初始化语音配置
+voice_generation.init_voice_generation()
+
+# 初始化 Agent
 agent_util.init_agents()
 
 

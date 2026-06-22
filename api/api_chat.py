@@ -14,7 +14,7 @@ from utils import agent_util, common_util, setting
 
 import logging
 
-from utils.voice_generation import voice_generation_minimax
+from utils.voice_generation import voice_generation
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,16 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     content_list = content.split("\n\n")
     for item in content_list:
         if voice_flag:
-            success, voice_path = voice_generation_minimax(item)
+            success, voice_path = voice_generation(item)
+            logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}")
             if success:
                 item = voice_path
                 dialogue_history_orm_obj.insert(item, "agent", "voice")
                 item = f"{{\"type\": \"voice\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+            else:
+                # 语音合成失败，直接插入文本
+                dialogue_history_orm_obj.insert(item, "agent", "text")
+                item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
         else:
             dialogue_history_orm_obj.insert(item, "agent", "text")
             item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
@@ -102,8 +107,8 @@ async def chat_send(message: str = Body(..., embed=True, description="用户消�
 
 @router.post("/api/chat/image", summary="上传对话图片", description="上传对话图片, 格式只能是 png, jpg, jpeg")
 async def upload_file(files: list[UploadFile] = File(..., max_length=9, description="最多上传9张图片")):
-
-
+    if not agent_util.agents["chat"].could_input_image():
+        raise ValueError("agent 不支持上传图片")
     file_parent_path = os.path.join(setting.UPLOAD_PATH, "chat_image")
     os.makedirs(file_parent_path, exist_ok=True)
     urls = []
