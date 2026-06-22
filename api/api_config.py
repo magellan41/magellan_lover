@@ -70,6 +70,8 @@ async def set_voice_env_config(config: VoiceConfig = Body(..., description="agen
 
 @router.get("/api/agent/schedule_description/get", summary="获取agent状态日程描述", description="获取agent状态日程描述")
 async def list_schedule_description() -> str:
+    if not os.path.exists(os.path.join(setting.CONFIG_PATH, "schedule_description.txt")):
+        return ""
     with open(os.path.join(setting.CONFIG_PATH, "schedule_description.txt"), "r", encoding="utf-8") as f:
         return f.read()
 
