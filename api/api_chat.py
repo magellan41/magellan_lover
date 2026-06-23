@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 
 from fastapi import APIRouter, Body, UploadFile, File
 from starlette.responses import StreamingResponse
@@ -50,6 +51,16 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     voice_flag = data.get("voice", False)
     image_flag = data.get("image", False)
 
+    content = content.replace("）", ")").replace("（", "(")
+    # 非语音模式下，移除所有语气词
+    if not voice_flag:
+        interjection = ["(chuckle)", "(laughs)", "(sneezes)", "(coughs)", "(clear-throat)", "(groans)", "(breath)",
+                        "(pant)", "(inhale)", "(exhale)", "(gasps)", "(sighs)", "(sniffs)", "(snorts)", "(burps)",
+                        "(lip-smacking)", "(humming)", "(hissing)", "(emm)"]
+        pattern = "|".join(map(re.escape, interjection))
+        new_str = re.sub(pattern, "", content)
+        content = new_str
+
     content_list = content.split("\n\n")
     for item in content_list:
         if voice_flag:
@@ -64,6 +75,7 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
                 dialogue_history_orm_obj.insert(item, "agent", "text")
                 item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
         else:
+
             dialogue_history_orm_obj.insert(item, "agent", "text")
             item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
 
