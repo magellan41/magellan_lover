@@ -62,8 +62,8 @@ async def list_voice_env_config() -> dict:
 
 @router.post("/api/agent/voice/set", summary="设置agent语音环境", description="设置agent语音环境配置项")
 async def set_voice_env_config(config: VoiceConfig = Body(..., description="agent语音环境配置项")) -> str:
-    env_util.write_env_vars(["voice_enable", "voice_key_type", "voice_api_key", "voice_generation_type"],
-                            [config.voice_enable, config.voice_key_type, config.voice_api_key, config.voice_generation_type])
+    env_util.write_env_vars(["voice_enable", "voice_api_key", "voice_generation_type"],
+                            [config.voice_enable, config.voice_api_key, config.voice_generation_type])
     init_voice_generation()
     return f"agent语音环境配置已重设"
 

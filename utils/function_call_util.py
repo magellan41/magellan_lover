@@ -183,7 +183,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "selfie_generate",
-            "description": "生成角色自拍,生成成功后返回图片路径，请你在回复的content字段中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示",
+            "description": "生成角色自拍,生成成功后返回图片路径。请你在回复的`content`字段中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示,注意不要破坏回复的json结构",
             "parameters": {
                 "type": "object",
                 "properties": {

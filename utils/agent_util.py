@@ -70,7 +70,7 @@ def estimate_tokens(messages) -> int:
 
 class Agent:
     def __init__(self, base_url, api_key, model_name, input_type, system_prompt, agent_type, continuous_dialogue=False, max_context_windows=131072):
-        self.llm = Llm(base_url, api_key, model_name)
+        self.llm = Llm(base_url, api_key, model_name, agent_type)
 
         self.input_type = input_type
         self.system_prompt = system_prompt
@@ -96,16 +96,17 @@ class Agent:
         if self.agent_type == "chat":
             history_dialogues = short_term_memory_orm_obj.get_original_memory()
             for dialogue in history_dialogues:
-                # 用户消息解析
-                if dialogue.role == "tool":
-                    dialogue_json = common_util.safe_json_loads(dialogue.content)
-                    logger.debug(f"dialogue_json: {dialogue_json}")
-                    self.conversation.append({"role": dialogue.role, "content": dialogue_json["result"], "tool_call_id": dialogue_json["tool_call_id"]})
-                    self.total_tokens += dialogue.tokens
-                else:
-                    content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
-                    self.conversation.append({"role": dialogue.role, "content": content})
-                    self.total_tokens += dialogue.tokens
+                dialogue_json = common_util.safe_json_loads(dialogue.content)
+                if dialogue_json['role'] == "user" and "image" not in self.input_type:
+                    content = dialogue_json['content']
+                    if isinstance(content, list):
+                        content = [item for item in content if item.get("type") == "text"]
+                        logger.debug(f"文本模型去除图片后: {content}")
+                        if len(content) == 0:
+                            content = [{"type": "text", "text": "用户发送了一张图片"}]
+                    dialogue_json['content'] = content
+                self.conversation.append(dialogue_json)
+                self.total_tokens += dialogue.tokens
         logger.debug(f"conversation: {self.conversation}, total_tokens: {self.total_tokens}")
 
     # def add_messages(self, role, messages):
@@ -114,16 +115,17 @@ class Agent:
 
     def add_message(self, role, message):
         if role == "tool":
-            message_in_conversation = {"role": role, "content": message["result"], "tool_call_id": message["tool_call_id"]}
+            message_in_conversation = {"role": role, "content": message["content"], "tool_call_id": message["tool_call_id"]}
         elif role == "assistant" or role is None:
-            message_in_conversation = message
+            message_in_conversation = message.copy()
+            message_in_conversation["role"] = "assistant"
         else:
             message_in_conversation = {"role": role, "content": message}
         tokens = estimate_tokens(message_in_conversation)
         self.total_tokens += tokens
         self.conversation.append(message_in_conversation)
 
-        message_in_db = json.dumps(message, ensure_ascii=False)
+        message_in_db = json.dumps(message_in_conversation, ensure_ascii=False)
         logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
         short_term_memory_orm_obj.insert(role, message_in_db, tokens)
 
@@ -148,22 +150,22 @@ class Agent:
                 response_message = self.llm.chat(self.conversation)
                 # logger.info(f"回复消息: {res}")
                 if self.continuous_dialogue:
-                    self.add_message("assistant", response_message.model_dump())
+                    self.add_message("assistant", response_message)
                 # tool_call处理
-                if response_message.tool_calls:
+                if response_message.get("tool_calls"):
                     logger.debug("工具调用:")
-                    for tool_call in response_message.tool_calls:
-                        logger.debug(f"调用 ID: {tool_call.id}")
-                        logger.debug(f"函数名称: {tool_call.function.name}")
-                        logger.debug(f"参数: {tool_call.function.arguments}")
-                        args = json.loads(tool_call.function.arguments)
+                    for tool_call in response_message["tool_calls"]:
+                        logger.debug(f"调用 ID: {tool_call['id']}")
+                        logger.debug(f"函数名称: {tool_call['function']['name']}")
+                        logger.debug(f"参数: {tool_call['function']['arguments']}")
+                        args = common_util.safe_json_loads(tool_call['function']['arguments'])
                         try:
-                            result = function_call_util.execute_function(tool_call.function.name, args)
+                            result = function_call_util.execute_function(tool_call['function']['name'], args)
                         except Exception as e:
                             logger.error(f"函数调用失败,详细信息: {e}")
                             result = f"函数调用失败,详细信息: {e}"
                         logger.debug(f"函数返回结果: {result}")
-                        self.add_message("tool",{"result": result,"tool_call_id": tool_call.id})
+                        self.add_message("tool",{"content": result,"tool_call_id": tool_call['id']})
                 else:
                     break
 
@@ -183,7 +185,7 @@ class Agent:
                 ]
                 self.total_tokens = estimate_tokens(self.conversation)
 
-            return response_message.content
+            return response_message["content"]
         except Exception as e:
             logger.error(f"chat失败,详细信息: {e}")
             return f"【ERROR】: {e}"

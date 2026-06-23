@@ -38,17 +38,42 @@ def init_models():
 
 
 class Llm:
-    def __init__(self, base_url, api_key, model_name):
-        print(base_url, api_key, model_name)
+    def __init__(self, base_url, api_key, model_name, agent_type):
+        # print(base_url, api_key, model_name, agent_type)
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
         self.model_name = model_name
+        self.agent_type = agent_type
 
     def chat(self, conversation):
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=conversation,
-            tools=function_call_util.function_call_descriptions
-        )
-        return response.choices[0].message
+        if self.agent_type == "chat":
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=conversation,
+                tools=function_call_util.function_call_descriptions
+            )
+        else:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=conversation
+            )
+        message =  response.choices[0].message
+        logger.debug(f"LLM原始回复: {message.content}")
+        assistant_msg = {
+            "content": message.content,
+        }
+        if message.tool_calls:
+            assistant_msg["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": tc.function,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                }
+                for tc in message.tool_calls
+            ]
+        return assistant_msg
 
         

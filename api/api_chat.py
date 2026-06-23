@@ -46,15 +46,18 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     # 调用 Agent 获取完整响应
     chat_agent = agent_util.agents["chat"]
     response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
-    if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
+    if isinstance(response_data, str) and not response_data.startswith("{"):
+        response_data = f"【ERROR】:{response_data}"
         if active_connections:
             await asyncio.gather(*[
                 conn_queue.put(response_data) for conn_queue in active_connections
             ])
+        return
 
     data = common_util.safe_json_loads(response_data)
     content = data.get("content", "")
     voice_flag = data.get("voice", False)
+    logger.debug(f"解析结果data: {data}")
 
     content = content.replace("）", ")").replace("（", "(")
     # 非语音模式下，移除所有语气词
@@ -67,7 +70,7 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
         content = new_str
 
     # content_list = content.split("\n\n")
-    split_pattern = r'(\n\n|<selfie>.*?</selfie>)'
+    split_pattern = r'(\n|<selfie>.*?</selfie>)'
     content_list = [part for part in re.split(split_pattern, content) if part]
     logger.debug(content_list)
     for item in content_list:
