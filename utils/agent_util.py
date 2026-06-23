@@ -147,9 +147,13 @@ class Agent:
             retry = 5
             response_message = None
             for i in range(retry):
-                response_message = self.llm.chat(self.conversation)
+                try:
+                    response_message = self.llm.chat(self.conversation)
+                except ValueError as e:
+                    logger.error(f"模型输出格式错误,重试中,第{i+1}次")
+                    continue
                 # logger.info(f"回复消息: {res}")
-                if self.continuous_dialogue:
+                if self.continuous_dialogue and response_message:
                     self.add_message("assistant", response_message)
                 # tool_call处理
                 if response_message.get("tool_calls"):
@@ -169,7 +173,8 @@ class Agent:
                 else:
                     break
 
-
+            if response_message is None:
+                return "【ERROR】: 模型输出为空,工具调用次数过多/模型输出格式错误重试失败"
             # 记录用户最后一次回复的消息
             if message_type == "user":
                 env_util.write_env_var(
