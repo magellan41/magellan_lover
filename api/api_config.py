@@ -4,7 +4,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, Body
 
 from entity.config import VoiceConfig, RoughSchedule
-from utils import setting
+from utils import setting, function_call_util
 
 import logging
 
@@ -85,5 +85,7 @@ async def set_schedule_description(content: str = Body(..., description="agent�
     return rough_schedule
 
 
-
+@router.get("/api/agent/image_generator/platform/get", summary="获取全部可选的图片生成器", description="获取全部可选的图片生成器")
+async def list_image_generator_platform() -> list:
+    return function_call_util.list_image_generator_platform()
 

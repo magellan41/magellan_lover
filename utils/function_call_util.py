@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def download_image(image_url):
+def _download_image(image_url):
     selfie_path = os.path.join(setting.DOWNLOAD_PATH, "selfie")
     os.makedirs(selfie_path, exist_ok=True)
     image_name = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.png"
@@ -44,12 +44,99 @@ def _generate_selfie_ark(prompt, original_image_base64, image_generator_api_key,
     if response.status_code != 200:
         logger.error(f"火山平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
         raise ValueError(f"火山平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+    logger.info(f"火山平台生成图片成功")
     return response.json()["data"][0]["url"]
 
 
+def _generate_selfie_ali(prompt, original_image_base64, image_generator_api_key, image_generator_model):
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
+    headers = {
+        "Authorization": f"Bearer {image_generator_api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": image_generator_model,
+        "input": {
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"image": original_image_base64},
+                    {"text": prompt}
+                ]
+            }]
+        },
+        "parameters": {
+            "n": 1,
+            "negative_prompt": " ",
+            "prompt_extend": True,
+            "watermark": False,
+            "size": "2048*2048"
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code != 200:
+        logger.error(f"阿里云平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+        raise ValueError(f"阿里云平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+    logger.info(f"阿里云平台生成图片成功")
+    return response.json()['output']['choices'][0]['message']['content'][0]['image']
+
+
+def _generate_selfie_minimax(prompt, original_image_base64, image_generator_api_key, image_generator_model):
+    url = "https://api.minimaxi.com/v1/image_generation"
+    headers = {
+        "Authorization": f"Bearer {image_generator_api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": image_generator_model,
+        "prompt": prompt,
+        "aspect_ratio": "1:1",
+        "subject_reference": [{
+            "type": "character",
+            "image_file": original_image_base64
+        }],
+        "n": 1
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code != 200:
+        logger.error(f"minimax平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+        raise ValueError(f"minimax平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+    logger.info(f"minimax平台生成图片成功")
+    return response.json()["data"]["image_urls"][0]
+
+def _generate_selfie_agnes(prompt, original_image_base64, image_generator_api_key, image_generator_model):
+    url = "https://apihub.agnes-ai.com/v1/images/generations"
+    headers = {
+        "Authorization": f"Bearer {image_generator_api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": image_generator_model,
+        "size": "1024x1024",
+        "prompt": prompt,
+        "extra_body": {
+            "image": [
+                original_image_base64
+            ],
+            "response_format": "url"
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code != 200:
+        logger.error(f"agnes平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+        raise ValueError(f"agnes平台生成图片失败，状态码: {response.status_code}，响应内容: {response.text}")
+    logger.info(f"agnes平台生成图片成功")
+    return response.json()["data"][0]["url"]
+
 _generate_image_dic = {
-    "ark": _generate_selfie_ark
+    "ark": _generate_selfie_ark,
+    "ali": _generate_selfie_ali,
+    "minimax": _generate_selfie_minimax,
+    "agnes": _generate_selfie_agnes
 }
+
+def list_image_generator_platform():
+    return _generate_image_dic.keys()
 
 
 def _generate_selfie(prompt, original_image_base64):
@@ -70,7 +157,7 @@ def _generate_selfie(prompt, original_image_base64):
         logger.error("未配置图片生成器模型，请前往更多配置页面配置")
         raise ValueError("未配置图片生成器模型，请前往更多配置页面配置")
     image_url = _generate_image_dic[image_generator_platform](prompt, original_image_base64, image_generator_api_key, image_generator_model)
-    return download_image(image_url)
+    return _download_image(image_url)
 
 
 def selfie_generate(prompt):
@@ -110,3 +197,9 @@ function_call_descriptions = [
 def execute_function(name, args):
     logger.debug(f"执行函数: {name}，参数: {args}")
     return function_dic[name](**args)
+
+if __name__ == "__main__":
+    import base64
+    base64_str = f"data:image/png;base64,{base64.b64encode(open(r"D:\magellan_data\code_workspace\python_workspace\magellan_lover\static\uploads\character_image\character_image.png", "rb").read()).decode('utf-8')}"
+    image_u = _generate_selfie_agnes("角色在房间内，房间内有灯，灯是黄色的", base64_str, os.getenv("AGNES_API_KEY"), "agnes-image-2.1-flash")
+    print(image_u)
