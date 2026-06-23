@@ -131,58 +131,63 @@ class Agent:
 
     def chat(self, messages, message_type="user"):
         # logger.debug(f"chat: {self.continuous_dialogue}")
-        if self.agent_type == "chat":
-            if isinstance(messages, str):
-                messages = [("text", messages)]
-            message = message_argument_before_add(messages, message_type)
-        else:
-            message = messages
-        if self.continuous_dialogue:
-            self.add_message("user", message)
-        else:
-            self.conversation.append({"role": "user", "content": message})
-        retry = 5
-        response_message = None
-        for i in range(retry):
-            response_message = self.llm.chat(self.conversation)
-            # logger.info(f"回复消息: {res}")
-            if self.continuous_dialogue:
-                self.add_message("assistant", response_message.model_dump())
-            # tool_call处理
-            if response_message.tool_calls:
-                logger.debug("工具调用:")
-                for tool_call in response_message.tool_calls:
-                    logger.debug(f"调用 ID: {tool_call.id}")
-                    logger.debug(f"函数名称: {tool_call.function.name}")
-                    logger.debug(f"参数: {tool_call.function.arguments}")
-                    args = json.loads(tool_call.function.arguments)
-                    try:
-                        result = function_call_util.execute_function(tool_call.function.name, args)
-                    except Exception as e:
-                        logger.error(f"函数调用失败,详细信息: {e}")
-                        result = f"函数调用失败,详细信息: {e}"
-                    logger.debug(f"函数返回结果: {result}")
-                    self.add_message("tool",{"result": result,"tool_call_id": tool_call.id})
+        try:
+            if self.agent_type == "chat":
+                if isinstance(messages, str):
+                    messages = [("text", messages)]
+                message = message_argument_before_add(messages, message_type)
             else:
-                break
+                message = messages
+            if self.continuous_dialogue:
+                self.add_message("user", message)
+            else:
+                self.conversation.append({"role": "user", "content": message})
+            retry = 5
+            response_message = None
+            for i in range(retry):
+                response_message = self.llm.chat(self.conversation)
+                # logger.info(f"回复消息: {res}")
+                if self.continuous_dialogue:
+                    self.add_message("assistant", response_message.model_dump())
+                # tool_call处理
+                if response_message.tool_calls:
+                    logger.debug("工具调用:")
+                    for tool_call in response_message.tool_calls:
+                        logger.debug(f"调用 ID: {tool_call.id}")
+                        logger.debug(f"函数名称: {tool_call.function.name}")
+                        logger.debug(f"参数: {tool_call.function.arguments}")
+                        args = json.loads(tool_call.function.arguments)
+                        try:
+                            result = function_call_util.execute_function(tool_call.function.name, args)
+                        except Exception as e:
+                            logger.error(f"函数调用失败,详细信息: {e}")
+                            result = f"函数调用失败,详细信息: {e}"
+                        logger.debug(f"函数返回结果: {result}")
+                        self.add_message("tool",{"result": result,"tool_call_id": tool_call.id})
+                else:
+                    break
 
 
-        # 记录用户最后一次回复的消息
-        if message_type == "user":
-            env_util.write_env_var(
-                "last_interaction_time",
-                datetime.datetime.now().isoformat())
+            # 记录用户最后一次回复的消息
+            if message_type == "user":
+                env_util.write_env_var(
+                    "last_interaction_time",
+                    datetime.datetime.now().isoformat())
 
-        # 持久化对话需要压缩
-        if self.continuous_dialogue:
-            self.compact()
-        else:
-            self.conversation = [
-                {"role": "system", "content": self.system_prompt}
-            ]
-            self.total_tokens = estimate_tokens(self.conversation)
+            # 持久化对话需要压缩
+            if self.continuous_dialogue:
+                self.compact()
+            else:
+                self.conversation = [
+                    {"role": "system", "content": self.system_prompt}
+                ]
+                self.total_tokens = estimate_tokens(self.conversation)
 
-        return response_message.content
+            return response_message.content
+        except Exception as e:
+            logger.error(f"chat失败,详细信息: {e}")
+            return f"【ERROR】: {e}"
+
 
     # TODO: 压缩未测试
     def compact_history(self):

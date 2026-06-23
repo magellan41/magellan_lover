@@ -46,6 +46,12 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     # 调用 Agent 获取完整响应
     chat_agent = agent_util.agents["chat"]
     response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
+    if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
+        if active_connections:
+            await asyncio.gather(*[
+                conn_queue.put(response_data) for conn_queue in active_connections
+            ])
+
     data = common_util.safe_json_loads(response_data)
     content = data.get("content", "")
     voice_flag = data.get("voice", False)
