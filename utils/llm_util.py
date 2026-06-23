@@ -29,7 +29,7 @@ def init_models():
             model_dic[model_id] = {
                 "base_url": platform.get("base_url"),
                 "api_key": platform.get("api_key"),
-                "key_type": platform.get("key_type"),
+                # "key_type": platform.get("key_type"),
                 "model_name": model["name"],
                 "input_type": model.get("input_type"),
                 "max_context_windows": model.get("max_context_windows", 131072),
@@ -39,6 +39,7 @@ def init_models():
 
 class Llm:
     def __init__(self, base_url, api_key, model_name):
+        print(base_url, api_key, model_name)
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
         self.model_name = model_name
 

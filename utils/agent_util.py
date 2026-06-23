@@ -261,11 +261,13 @@ def init_agents():
             logger.error(f"缺少{agent_type}模型配置{model_id}")
             raise Exception(f"缺少{agent_type}模型配置{model_id}")
 
-        key_type = model_config["key_type"]
-        if key_type == "env":
-            api_key = os.getenv(model_config["api_key"])
-        else:
-            api_key = model_config["api_key"]
+        api_key = model_config["api_key"]
+        api_key = common_util.get_true_value_in_env(api_key)
+        # key_type = model_config["key_type"]
+        # if key_type == "env":
+        #     api_key = os.getenv(model_config["api_key"])
+        # else:
+        #     api_key = model_config["api_key"]
 
         system_prompt_path = os.path.join(setting.CONFIG_PATH, agent_type + "_system_prompt.txt")
         system_prompt = 'You are a helpful assistant.'

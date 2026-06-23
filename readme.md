@@ -44,8 +44,7 @@ cp config/user.md.example config/user.md
   - 数据库配置
 - config/llm_config.json
   - 注意使用支持openai like api的llm模型
-  - `key_type`设置为`env`，`api_key`填写**环境变量名**，从系统环境变量中读取
-  - `key_type`设置为`str`，`api_key`明文api key
+  - api_key为${xxx}格式时会从环境变量中读取xxx对应的值
 
 `agents` 字段说明：
 - `chat` — 主聊天模型

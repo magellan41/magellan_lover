@@ -4,7 +4,7 @@ import uuid
 
 import requests
 
-from utils import env_util, setting
+from utils import env_util, setting, common_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,21 +14,22 @@ logger = logging.getLogger(__name__)
 _voice_enable = "未找到该配置项"
 _voice_api_key = "未找到该配置项"
 _voice_generation_type = "未找到该配置项"
-_voice_key_type = "未找到该配置项"
+# _voice_key_type = "未找到该配置项"
 
 
 def init_voice_generation():
     """
     初始化语音合成
     """
-    global _voice_enable, _voice_api_key, _voice_generation_type, _voice_key_type
-    env_vars = env_util.read_env_vars(["voice_enable", "voice_key_type", "voice_api_key", "voice_generation_type"])
+    global _voice_enable, _voice_api_key, _voice_generation_type#, _voice_key_type
+    env_vars = env_util.read_env_vars(["voice_enable", "voice_api_key", "voice_generation_type"])
     _voice_generation_type = env_vars["voice_generation_type"]
     _voice_enable = env_vars["voice_enable"]
-    _voice_key_type = env_vars["voice_key_type"]
+    # _voice_key_type = env_vars["voice_key_type"]
     _voice_api_key = env_vars["voice_api_key"]
-    if _voice_key_type == "env":
-        _voice_api_key = os.getenv(_voice_api_key)
+    # if _voice_key_type == "env":
+    #     _voice_api_key = os.getenv(_voice_api_key)
+    _voice_api_key = common_util.get_true_value_in_env(_voice_api_key)
 
 
 
