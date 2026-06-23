@@ -49,7 +49,6 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     data = common_util.safe_json_loads(response_data)
     content = data.get("content", "")
     voice_flag = data.get("voice", False)
-    image_flag = data.get("image", False)
 
     content = content.replace("）", ")").replace("（", "(")
     # 非语音模式下，移除所有语气词
@@ -61,9 +60,19 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
         new_str = re.sub(pattern, "", content)
         content = new_str
 
-    content_list = content.split("\n\n")
+    # content_list = content.split("\n\n")
+    split_pattern = r'(\n\n|<selfie>.*?</selfie>)'
+    content_list = [part for part in re.split(split_pattern, content) if part]
+    logger.debug(content_list)
     for item in content_list:
-        if voice_flag:
+        item = item.strip()
+        if item == "" or item == r"\n\n" or item == r"\n" or item == r"<selfie>" or item == r"</selfie>":
+            continue
+        if item.startswith("<selfie>"):
+            item = item.replace("<selfie>", "").replace("</selfie>", "")
+            dialogue_history_orm_obj.insert(item, "agent", "image")
+            item =  f"{{\"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+        elif voice_flag:
             success, voice_path = voice_generation(item)
             logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}")
             if success:
@@ -75,7 +84,6 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
                 dialogue_history_orm_obj.insert(item, "agent", "text")
                 item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
         else:
-
             dialogue_history_orm_obj.insert(item, "agent", "text")
             item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
 

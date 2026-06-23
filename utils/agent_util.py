@@ -10,7 +10,7 @@ from orm.mid_term_memroy_orm import MidTermMemoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from utils.common_util import message_argument_before_add
 from utils.llm_util import Llm
-from utils import setting, env_util, llm_util, config_util, common_util
+from utils import setting, env_util, llm_util, config_util, common_util, function_call_util
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +97,15 @@ class Agent:
             history_dialogues = short_term_memory_orm_obj.get_original_memory()
             for dialogue in history_dialogues:
                 # 用户消息解析
-                content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
-                self.conversation.append({"role": dialogue.role, "content": content})
-                self.total_tokens += dialogue.tokens
+                if dialogue.role == "tool":
+                    dialogue_json = common_util.safe_json_loads(dialogue.content)
+                    logger.debug(f"dialogue_json: {dialogue_json}")
+                    self.conversation.append({"role": dialogue.role, "content": dialogue_json["result"], "tool_call_id": dialogue_json["tool_call_id"]})
+                    self.total_tokens += dialogue.tokens
+                else:
+                    content = json.loads(dialogue.content) if dialogue.role == "user" else dialogue.content
+                    self.conversation.append({"role": dialogue.role, "content": content})
+                    self.total_tokens += dialogue.tokens
         logger.debug(f"conversation: {self.conversation}, total_tokens: {self.total_tokens}")
 
     # def add_messages(self, role, messages):
@@ -107,12 +113,17 @@ class Agent:
     #         self.add_message(role, message)
 
     def add_message(self, role, message):
-        message_in_conversation = {"role": role, "content": message}
+        if role == "tool":
+            message_in_conversation = {"role": role, "content": message["result"], "tool_call_id": message["tool_call_id"]}
+        elif role == "assistant" or role is None:
+            message_in_conversation = message
+        else:
+            message_in_conversation = {"role": role, "content": message}
         tokens = estimate_tokens(message_in_conversation)
         self.total_tokens += tokens
         self.conversation.append(message_in_conversation)
-        # 用户的消息是列表，需要转换为字符串
-        message_in_db = json.dumps(message, ensure_ascii=False) if role == "user" else message
+
+        message_in_db = json.dumps(message, ensure_ascii=False)
         logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
         short_term_memory_orm_obj.insert(role, message_in_db, tokens)
 
@@ -130,11 +141,31 @@ class Agent:
             self.add_message("user", message)
         else:
             self.conversation.append({"role": "user", "content": message})
+        retry = 5
+        response_message = None
+        for i in range(retry):
+            response_message = self.llm.chat(self.conversation)
+            # logger.info(f"回复消息: {res}")
+            if self.continuous_dialogue:
+                self.add_message("assistant", response_message.model_dump())
+            # tool_call处理
+            if response_message.tool_calls:
+                logger.debug("工具调用:")
+                for tool_call in response_message.tool_calls:
+                    logger.debug(f"调用 ID: {tool_call.id}")
+                    logger.debug(f"函数名称: {tool_call.function.name}")
+                    logger.debug(f"参数: {tool_call.function.arguments}")
+                    args = json.loads(tool_call.function.arguments)
+                    try:
+                        result = function_call_util.execute_function(tool_call.function.name, args)
+                    except Exception as e:
+                        logger.error(f"函数调用失败,详细信息: {e}")
+                        result = f"函数调用失败,详细信息: {e}"
+                    logger.debug(f"函数返回结果: {result}")
+                    self.add_message("tool",{"result": result,"tool_call_id": tool_call.id})
+            else:
+                break
 
-        res = self.llm.chat(self.conversation)
-        # logger.info(f"回复消息: {res}")
-        if self.continuous_dialogue:
-            self.add_message("assistant", res)
 
         # 记录用户最后一次回复的消息
         if message_type == "user":
@@ -151,7 +182,7 @@ class Agent:
             ]
             self.total_tokens = estimate_tokens(self.conversation)
 
-        return res
+        return response_message.content
 
     # TODO: 压缩未测试
     def compact_history(self):

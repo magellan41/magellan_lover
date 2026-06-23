@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 import re
 import time
 
@@ -10,6 +11,8 @@ from orm.schedule_orm import DetailScheduleORM
 detail_schedule_orm_obj = DetailScheduleORM()
 
 def base64_encode(image_path):
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"图片文件不存在: {image_path}")
     img = Image.open(image_path)
 
     real_format = img.format
@@ -74,4 +77,14 @@ def safe_json_loads(text: str):
             text
         )
         return json.loads(fixed)
+
+
+def get_true_value_in_env(var_name):
+    if var_name.startswith("${") and var_name.endswith("}"):
+        var_val = os.environ.get(var_name[2:-1])
+        if not var_val:
+            raise ValueError(f"未找到环境变量 {var_name[2:-1]}")
+    else:
+        var_val = var_name
+    return var_val
 

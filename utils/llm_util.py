@@ -1,11 +1,9 @@
 import openai
 
-from orm.short_term_memory_orm import ShortTermMemoryORM
 
 import logging
 
-from utils import setting, config_util
-from utils.common_util import safe_json_loads
+from utils import config_util, function_call_util
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +45,9 @@ class Llm:
     def chat(self, conversation):
         response = self.client.chat.completions.create(
             model=self.model_name,
-            messages=conversation
+            messages=conversation,
+            tools=function_call_util.function_call_descriptions
         )
-        return response.choices[0].message.content
+        return response.choices[0].message
 
         

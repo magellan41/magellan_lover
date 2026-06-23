@@ -5,6 +5,7 @@ CONFIG_PATH = ''
 LLM_CONFIG_PATH = ''
 DB_CONFIG_PATH = ''
 UPLOAD_PATH = ''
+DOWNLOAD_PATH = ''
 STATIC_PATH = ''
 VOICE_PATH = ''
 IMAGE_PATH = ''
@@ -18,6 +19,7 @@ def init(root_path):
     global VOICE_PATH
     global IMAGE_PATH
     global STATIC_PATH
+    global DOWNLOAD_PATH
 
     ROUT_PATH = root_path
     CONFIG_PATH = os.path.join(root_path, 'config')
@@ -27,6 +29,8 @@ def init(root_path):
 
     STATIC_PATH = os.path.join(root_path, "static")
     os.makedirs(STATIC_PATH, exist_ok=True)
+    DOWNLOAD_PATH = os.path.join(STATIC_PATH, 'downloads')
+    os.makedirs(DOWNLOAD_PATH, exist_ok=True)
     UPLOAD_PATH = os.path.join(STATIC_PATH, 'uploads')
     os.makedirs(UPLOAD_PATH, exist_ok=True)
     VOICE_PATH = os.path.join(STATIC_PATH, "voice")
