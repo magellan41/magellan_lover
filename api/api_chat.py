@@ -46,33 +46,48 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
     # 调用 Agent 获取完整响应
     chat_agent = agent_util.agents["chat"]
     response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
-    if isinstance(response_data, str) and not response_data.startswith("{"):
-        response_data = f"【ERROR】:{response_data}"
+    if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
+        # 报错落库
+        dialogue_history_orm_obj.insert(response_data, "agent", "text")
         if active_connections:
             await asyncio.gather(*[
                 conn_queue.put(response_data) for conn_queue in active_connections
             ])
         return
 
-    data = common_util.safe_json_loads(response_data)
-    content = data.get("content", "")
-    voice_flag = data.get("voice", False)
-    logger.debug(f"解析结果data: {data}")
+    # 清理文本
+    pattern = r'\[flag:\s*(?P<flag>.*?)\]\[voice:\s*(?P<voice>.*?)\](?P<content>.*)'
+    match = re.search(pattern, response_data,flags=re.DOTALL)
+    if match:
+        result = match.groupdict()
+    else:
+        result = {"flag": "true", "voice": "false", "content": response_data}
+    flag = result["flag"] == "true" or result["flag"] == "True"
+    if not flag:
+        logger.debug(f"flag: {flag}, 不回复用户")
+        return
+    voice_flag = result["voice"] == "true" or result["voice"] == "True"
+    content = result["content"]
 
     content = content.replace("）", ")").replace("（", "(")
     # 非语音模式下，移除所有语气词
     if not voice_flag:
-        interjection = ["(chuckle)", "(laughs)", "(sneezes)", "(coughs)", "(clear-throat)", "(groans)", "(breath)",
-                        "(pant)", "(inhale)", "(exhale)", "(gasps)", "(sighs)", "(sniffs)", "(snorts)", "(burps)",
-                        "(lip-smacking)", "(humming)", "(hissing)", "(emm)"]
-        pattern = "|".join(map(re.escape, interjection))
+        # interjection = ["(chuckle)", "(laughs)", "(sneezes)", "(coughs)", "(clear-throat)", "(groans)", "(breath)",
+        #                 "(pant)", "(inhale)", "(exhale)", "(gasps)", "(sighs)", "(sniffs)", "(snorts)", "(burps)",
+        #                 "(lip-smacking)", "(humming)", "(hissing)", "(emm)"]
+        # pattern1 = "|".join(map(re.escape, interjection))
+        pattern1 = r'\([a-zA-Z-]+\)'
+        pattern2 = r'<#\d+(?:\.\d+)?#>'
+        pattern = f"{pattern1}|{pattern2}"
         new_str = re.sub(pattern, "", content)
+        new_str = re.sub(r'[^\S\n]+', ' ', new_str).strip()
         content = new_str
+        logger.debug(f"清理后内容: {content}")
 
     # content_list = content.split("\n\n")
     split_pattern = r'(\n|<selfie>.*?</selfie>)'
     content_list = [part for part in re.split(split_pattern, content) if part]
-    logger.debug(content_list)
+    logger.debug(f"split后内容列表: {content_list}")
     for item in content_list:
         item = item.strip()
         if item == "" or item == r"\n\n" or item == r"\n" or item == r"<selfie>" or item == r"</selfie>":
@@ -80,21 +95,21 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
         if item.startswith("<selfie>"):
             item = item.replace("<selfie>", "").replace("</selfie>", "")
             dialogue_history_orm_obj.insert(item, "agent", "image")
-            item =  f"{{\"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+            item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
         elif voice_flag:
             success, voice_path = voice_generation(item)
             logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}")
             if success:
                 item = voice_path
                 dialogue_history_orm_obj.insert(item, "agent", "voice")
-                item = f"{{\"type\": \"voice\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"role\": \"agent\"}}"
             else:
                 # 语音合成失败，直接插入文本
                 dialogue_history_orm_obj.insert(item, "agent", "text")
-                item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
         else:
             dialogue_history_orm_obj.insert(item, "agent", "text")
-            item = f"{{\"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+            item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
 
         # 将 Agent 的响应封装并推入 SSE 管道
         # await sse_push_queue.put(response_data)
