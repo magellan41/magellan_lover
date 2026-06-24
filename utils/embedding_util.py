@@ -6,7 +6,7 @@ from typing import Dict, List, Any
 import dashscope
 from chromadb import EmbeddingFunction, Embeddings
 
-from utils import agent_util, common_util
+from utils import agent_util, common_util, env_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class AliyunFusionEmbedding(EmbeddingFunction):
     def __init__(self, api_key: str | None = None, model: str = "qwen3-vl-embedding", dimension: int = 1024):
-        dashscope.api_key = api_key or os.getenv("DASHSCOPE_API_KEY")
+        dashscope.api_key = common_util.get_true_value_in_env(env_util.read_env_var("embedding_api_key"))
         self.model = model
         self.dimension = dimension
         self.max_retries = 3
@@ -85,7 +85,7 @@ def save_meme_to_db(image_id: int, image_path: str):
         }]
     )
 
-def query_memes_by_text(query_text: str, top_k: int = 3) -> List[Dict[str, Any]]:
+def query_memes_by_text(query_text: str, top_k: int = 10) -> List[Dict[str, Any]]:
     try:
         input_data = [{'text': query_text}]
         query_embedding = _embed_fn([input_data])[0]
