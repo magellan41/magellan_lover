@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 
 import requests
 
@@ -160,7 +161,7 @@ def _generate_selfie(prompt, original_image_base64):
     return _download_image(image_url)
 
 
-def selfie_generate(prompt):
+def _selfie_generate(prompt):
     """
     生成自拍
     """
@@ -174,14 +175,65 @@ def selfie_generate(prompt):
     return _generate_selfie(prompt, character_image_base64)
 
 
+def _zhihu_search(query_text: str):
+    if not env_util.read_env_var("zhihu_api_key"):
+        raise ValueError("未配置知乎 API 密钥，请前往更多配置页面配置")
+    zhihu_url = "https://developer.zhihu.com/api/v1/content/zhihu_search"
+    zhihu_headers = {
+        'Content-Type': 'application/json',
+        'X-Request-Timestamp': str(int(time.time())),
+        'Authorization': f'Bearer {common_util.get_true_value_in_env(env_util.read_env_var("zhihu_api_key"))}'
+    }
+    zhihu_params = {
+        "Query": query_text,
+        "Count": 5
+    }
+    response = requests.get(zhihu_url, headers=zhihu_headers, params=zhihu_params)
+    if response.status_code != 200:
+        logger.error(f"知乎搜索失败，状态码: {response.status_code}，响应内容: {response.text}")
+        raise ValueError(f"知乎搜索失败，状态码: {response.status_code}，响应内容: {response.text}")
 
-def query_memes_by_text(query_text: str):
+    response_json = response.json()
+    logger.debug(f"知乎搜索响应内容: {response_json}")
+    if response_json["Code"] == 10001:
+        logger.error(f"知乎搜索【参数错误】，错误信息: {response_json.get('Message', '未知错误')}")
+        raise ValueError(f"知乎搜索【参数错误】，错误信息: {response_json.get('Message', '未知错误')}")
+    elif response_json["Code"] == 20001:
+        logger.error(f"知乎搜索【鉴权失败】，错误信息: {response_json.get('Message', '未知错误')}")
+        raise ValueError(f"知乎搜索【鉴权失败】，错误信息: {response_json.get('Message', '未知错误')}")
+    elif response_json["Code"] == 30001:
+        logger.error(f"知乎搜索【频率限制】，错误信息: {response_json.get('Message', '未知错误')}")
+        raise ValueError(f"知乎搜索【频率限制】，错误信息: {response_json.get('Message', '未知错误')}")
+    elif response_json["Code"] == 90001:
+        logger.error(f"知乎搜索【内部错误】，错误信息: {response_json.get('Message', '未知错误')}")
+        raise ValueError(f"知乎搜索【内部错误】，错误信息: {response_json.get('Message', '未知错误')}")
+
+    logger.info(f"知乎搜索{query_text}成功")
+    res = []
+    for item in response_json["Data"]["Items"]:
+        res_item = {
+            "标题": item["Title"],
+            "摘要": item["ContentText"],
+            "评分": item["RankingScore"],
+            "最后更新时间": datetime.datetime.fromtimestamp(item["EditTime"], tz=datetime.timezone(datetime.timedelta(hours=8)))
+        }
+        if "CommentInfoList" in item:
+            res_item["精选评论"] = item["CommentInfoList"]
+            res.append(res_item)
+    return str(res)
+
+
+
+def _query_memes_by_text(query_text: str):
+    if not env_util.read_env_var("embedding_api_key"):
+        raise ValueError("未配置文搜图 API 密钥，请前往更多配置页面配置")
     return str(embedding_util.query_memes_by_text(query_text))
 
 
 function_dic = {
-    "selfie_generate": selfie_generate,
-    "query_memes_by_text": query_memes_by_text,
+    "selfie_generate": _selfie_generate,
+    "query_memes_by_text": _query_memes_by_text,
+    "zhihu_search": _zhihu_search,
 }
 
 function_call_descriptions = [
@@ -212,7 +264,21 @@ function_call_descriptions = [
                 "required": ["query_text"]
             }
         }
-       }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "zhihu_search",
+            "description": "知乎查询工具，用于查询一些用户提问的问题，或者用于查询感兴趣的内容跟用户分享",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query_text": {"type": "string","description": "想要搜索的问题"}
+                },
+                "required": ["query_text"]
+            }
+        }
+    }
 ]
 def execute_function(name, args):
     logger.debug(f"执行函数: {name}，参数: {args}")
