@@ -53,6 +53,8 @@ cp config/user.md.example config/user.md
   - `image_generator_platform`为图片生成平台
   - `image_generator_api_key`为图片生成 API key
   - `image_generator_model`为图片生成模型
+  - `embedding_api_key`为嵌入模型 API key，用于文本相似度计算
+  - `zhihu_api_key`为知乎 API key，用于搜索知乎文章
 - config/db.ini
   - 数据库配置
 - config/llm_config.json
@@ -75,30 +77,32 @@ cp config/user.md.example config/user.md
 
 ## API 接口
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/chat/send` | POST | 发送消息 |
-| `/api/chat/image` | POST | 上传对话图片（最多9张） |
-| `/api/chat/stream` | GET | SSE 消息流（长连接） |
-| `/api/chat/list/{min_id}` | GET | 获取聊天记录（每次100条） |
-| `/api/lover/config/show/{config}` | GET | 获取伴侣配置（soul/user） |
-| `/api/lover/config/set/{config}` | POST | 设置伴侣配置 |
-| `/api/agent/config/get` | GET | 获取 agent LLM 配置 |
-| `/api/agent/config/set` | POST | 设置 agent LLM 配置 |
-| `/api/agent/env/get/{key}` | GET | 获取 agent 环境配置项 |
-| `/api/agent/env/set` | POST | 设置 agent 环境配置项 |
-| `/api/agent/voice/get` | GET | 获取语音合成配置 |
-| `/api/agent/voice/set` | POST | 设置语音合成配置 |
-| `/api/agent/schedule_description/get` | GET | 获取日程描述 |
-| `/api/agent/schedule_description/set` | POST | 设置日程描述 |
-| `/api/agent/image_generator/platform/get` | GET | 获取可选图片生成平台 |
-| `/api/file/uploads/avatar/{owner}` | POST | 上传头像（user/agent） |
-| `/api/file/uploads/common` | POST | 上传通用文件 |
-| `/api/file/uploads/character_image` | POST | 上传角色图片（用于自拍生成） |
-| `/api/memory/mid/list` | GET | 获取中期记忆列表 |
-| `/api/memory/mid/delete` | DELETE | 批量删除中期记忆 |
-| `/api/memory/long/list` | GET | 获取长期记忆列表 |
-| `/api/memory/long/delete` | DELETE | 批量删除长期记忆 |
+| 接口 | 方法     | 说明                        |
+|------|--------|---------------------------|
+| `/api/chat/send` | POST   | 发送消息                      |
+| `/api/chat/image` | POST   | 上传对话图片（最多9张）              |
+| `/api/chat/stream` | GET    | SSE 消息流（长连接）              |
+| `/api/chat/list/{min_id}` | GET    | 获取聊天记录（每次100条）            |
+| `/api/lover/config/show/{config}` | GET    | 获取伴侣配置（soul/user）         |
+| `/api/lover/config/set/{config}` | POST   | 设置伴侣配置                    |
+| `/api/agent/config/get` | GET    | 获取 agent LLM 配置           |
+| `/api/agent/config/set` | POST   | 设置 agent LLM 配置           |
+| `/api/agent/env/get/{key}` | GET    | 获取 agent 环境配置项            |
+| `/api/agent/env/set` | POST   | 设置 agent 环境配置项            |
+| `/api/agent/voice/get` | GET    | 获取语音合成配置                  |
+| `/api/agent/voice/set` | POST   | 设置语音合成配置                  |
+| `/api/agent/schedule_description/get` | GET    | 获取日程描述                    |
+| `/api/agent/schedule_description/set` | POST   | 设置日程描述                    |
+| `/api/agent/image_generator/platform/get` | GET    | 获取可选图片生成平台                |
+| `/api/file/uploads/avatar/{owner}` | POST   | 上传头像（user/agent）          |
+| `/api/file/uploads/common` | POST   | 上传通用文件                    |
+| `/api/file/uploads/character_image` | POST   | 上传角色图片（用于自拍生成）            |
+| `/api/file/uploads/memes` | POST   | 上传表情包（给agent提供对话时可发送的表情包） |
+| `/api/file/query/memes` | GET    | 语义查询表情包测试接口               |
+| `/api/memory/mid/list` | GET    | 获取中期记忆列表                  |
+| `/api/memory/mid/delete` | DELETE | 批量删除中期记忆                  |
+| `/api/memory/long/list` | GET    | 获取长期记忆列表                  |
+| `/api/memory/long/delete` | DELETE | 批量删除长期记忆                  |
 
 ## 项目结构
 ```
@@ -112,6 +116,7 @@ magellan_lover/
 ├── entity/ # 数据模型
 │   ├── Chat.py # 聊天消息模型
 │   ├── Dialogue.py # 对话模型
+│   ├── Memes.py # 表情包模型
 │   ├── Memory.py # 记忆模型
 │   ├── Schedule.py # 日程模型
 │   ├── Task.py # 任务模型
@@ -119,6 +124,7 @@ magellan_lover/
 ├── orm/ # 数据库操作层
 │   ├── dialog_history_orm.py # 对话历史
 │   ├── long_term_memory_orm.py # 长期记忆
+│   ├── memes_orm.py # 表情包
 │   ├── mid_term_memroy_orm.py # 中期记忆
 │   ├── schedule_orm.py # 日程管理
 │   ├── short_term_memory_orm.py # 短期记忆
