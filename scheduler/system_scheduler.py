@@ -93,7 +93,7 @@ async def memory_clear():
         try:
             res = await asyncio.to_thread(agent_util.agents["memory"].chat, mid_term_memory_str)
             logger.info(f"记忆清理agent原始返回: {res}")
-            res = json.loads(res).get("delete_memory_id_list", [])
+            res = common_util.safe_json_loads(res).get("delete_memory_id_list", [])
             mid_term_memory_orm_obj.delete_all(res)
             mid_term_memory_orm_obj.alive()
 
@@ -170,8 +170,8 @@ async def daily_schedule_task():
 """
     logger.info("开始制定今日日程")
     res = await asyncio.to_thread(agent_util.agents["story"].chat, daily_schedule_prompt)
-    res = json.dumps(common_util.safe_json_loads(res), ensure_ascii=False)
-    logger.info(f"制定今日日程: {res}")
+    # res = json.dumps(common_util.safe_json_loads(res), ensure_ascii=False)
+    # logger.info(f"制定今日日程: {res}")
     daily_schedule_orm_obj.insert(day_str, res)
 
 

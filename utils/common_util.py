@@ -7,6 +7,10 @@ import time
 
 from PIL import Image
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 from orm.schedule_orm import DetailScheduleORM
 detail_schedule_orm_obj = DetailScheduleORM()
 
@@ -62,19 +66,26 @@ def message_argument_before_add(messages, message_type="user"):
 def safe_json_loads(text: str):
     """安全解析 JSON，兼容 LLM 返回的包含未转义控制字符的 JSON"""
     text = text.strip()
-    if text.startswith("```json"):
-        text = text[8:]
-    if text.endswith("```"):
-        text = text[:-3]
+    # 针对minimax删除思考过程中的内容
+    text = re.sub(r'<think>.*?</think>', '', text)
+    json_match = re.search(r"\{.*\}", text, re.DOTALL)
+
+    # 检查是否找到JSON格式
+    if not json_match:
+        logger.error(f"未找到JSON格式，原始内容: {text}")
+        raise ValueError(f"未找到JSON格式，原始内容: {text}")
+
+    clean_json_str = json_match.group(0)
+    logger.debug(f"提取到的JSON字符串内容: {clean_json_str}")
 
     try:
-        return json.loads(text)
+        return json.loads(clean_json_str)
     except json.JSONDecodeError:
         # LLM 可能在 content 字段中返回字面换行符，需要转义
         fixed = re.sub(
             r'"(?:[^"\\]|\\.)*"',
             lambda m: m.group(0).replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t'),
-            text
+            clean_json_str
         )
         return json.loads(fixed)
 
