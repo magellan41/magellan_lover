@@ -156,13 +156,17 @@ class Agent:
             else:
                 self.conversation.append({"role": "user", "content": message})
             logger.debug(f"当前conversation: {self.conversation}")
-            retry = 5
+            max_tools_call = 20
+            max_formate_retry = 5
+            tools_call = 0
+            formate_retry = 0
             response_message = None
-            for i in range(retry):
+            while tools_call < max_tools_call and formate_retry < max_formate_retry:
                 try:
                     response_message = self.llm.chat(self.conversation)
-                except ValueError as e:
-                    logger.error(f"模型输出格式错误,重试中,第{i+1}次")
+                except ValueError:
+                    logger.error(f"模型输出格式错误,重试中,第{formate_retry+1}次")
+                    formate_retry += 1
                     continue
                 # logger.info(f"回复消息: {res}")
                 if self.continuous_dialogue and response_message:
@@ -182,11 +186,12 @@ class Agent:
                             result = f"函数调用失败,详细信息: {e}"
                         logger.debug(f"函数返回结果: {result}")
                         self.add_message("tool",{"content": result,"tool_call_id": tool_call['id']})
+                        tools_call += 1
                 else:
                     break
 
             if response_message is None:
-                return "【ERROR】: 模型输出为空,工具调用次数过多/模型输出格式错误重试失败"
+                return f"【ERROR】: 模型输出为空,尝试工具调用次数{tools_call},模型输出格式错误重试次数{formate_retry}：{"工具调用链过长" if tools_call > max_tools_call else "模型输出格式错误重试失败"}"
             # 记录用户最后一次回复的消息
             if message_type == "user":
                 env_util.write_env_var(

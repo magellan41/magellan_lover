@@ -77,28 +77,6 @@ class Llm:
                 }
                 for tc in message.tool_calls
             ]
-        # elif self.agent_type == "chat":
-        #     # 处理结构化输出
-        #     original_content = assistant_msg["content"]
-        #     # json_match = re.search(r"\{.*\}", original_content, re.DOTALL)
-        #     json_match = re.search(r"\{.*?\}", original_content, re.DOTALL)
-        #
-        #     # 检查是否找到JSON格式
-        #     if not json_match:
-        #         logger.error(f"未在回复中找到JSON格式，原始内容: {original_content}")
-        #         raise ValueError("模型未输出有效的JSON格式")
-        #
-        #     clean_json_str = json_match.group(0)
-        #     clean_json_str = clean_json_str.replace('“', '"').replace('”', '"')
-        #     clean_json_str = clean_json_str.replace('‘', "'").replace('’', "'")
-        #     logger.debug(f"json_match结果为: {clean_json_str}")
-        #     try:
-        #         parsed_obj = ModelResponseSchema.ChatModelResponseSchema.model_validate_json(clean_json_str)
-        #         logger.debug(f"解析成功: {parsed_obj}")
-        #         assistant_msg["content"] = clean_json_str
-        #     except Exception as e:
-        #         logger.error(f"解析失败: {e}")
-        #         raise ValueError("模型未输出有效的JSON格式")
 
         return assistant_msg
 
