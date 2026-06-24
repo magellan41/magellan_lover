@@ -32,6 +32,7 @@ static/image/
 uploads/avatar/
 uploads/common/
 *.log
+config/rough_schedule.json
 
 # ==================== IDE / 编辑器 ====================
 .vscode/

@@ -1,11 +1,16 @@
 import datetime
 import os
 import uuid
+from typing import Any
 
-from fastapi import FastAPI, File, UploadFile, APIRouter, HTTPException
+from fastapi import FastAPI, File, UploadFile, APIRouter, HTTPException, BackgroundTasks, Query
 
-from utils import setting, env_util
+from utils import setting, env_util, common_util, embedding_util
 from utils.env_util import write_env_var
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(tags=["文件接口"])
 
@@ -73,5 +78,69 @@ async def upload_character_image_file(file: UploadFile = File(...)):
         "url": url
     }
 
+import asyncio
+from orm.memes_orm import MemesOrm
+memes_orm_obj = MemesOrm()
+
+def sync_meme_to_vector_db(file_info_list: list[dict[str, Any]]):
+    for file_info in file_info_list:
+        id = file_info["id"]
+        file_path = file_info["file_path"]
+        try:
+            embedding_util.save_meme_to_db(id, file_path)
+            logger.info(f"表情包 {file_info['name']} 成功保存到向量数据库")
+            memes_orm_obj.mark_save_in_vector([id])
+        except Exception as e:
+            logger.error(f"表情包 {file_info['name']} 失败: {e}")
+            memes_orm_obj.mark_fail_save_in_vector([id])
+
+
+
+@router.post("/api/file/uploads/memes", summary="上传表情包", description="上传表情包,用于虚拟角色回复")
+async def upload_memes_file(files: list[UploadFile] = File(..., max_length=9, description="一次最多上传9张图片"),
+                            background_tasks: BackgroundTasks = None,):
+    file_parent_path = os.path.join(setting.UPLOAD_PATH, "memes")
+    os.makedirs(file_parent_path, exist_ok=True)
+    urls = []
+    success_names = []
+    file_info_list = []
+    for file in files:
+        content = await file.read()
+        md5_val = common_util.get_md5_val(content)
+
+        existing_meme = memes_orm_obj.select_by_md5_val(md5_val)
+        if existing_meme is not None:
+            urls.append(existing_meme.url)
+            success_names.append(existing_meme.url)
+            continue
+        try:
+            await file.seek(0)
+            new_filename = await save_file_to_disk(file, file_parent_path, allowed_extensions=ALLOWED_EXTENSIONS)
+            url = f'/static/uploads/memes/{new_filename}'
+            file_path = os.path.join(file_parent_path, new_filename)
+            id = memes_orm_obj.insert(file_path, url, md5_val)
+            file_info_list.append({"id": id, "file_path": file_path, "name": file.filename})
+            success_names.append(file.filename)
+        except Exception as e:
+            logger.error(f"上传表情包 {file.filename} 失败: {e}")
+
+    if file_info_list:
+        async def run_sync_task():
+            await asyncio.to_thread(sync_meme_to_vector_db, file_info_list)
+
+        background_tasks.add_task(run_sync_task)
+
+    return {
+        "status": "received",
+        "total_count": len(files),
+        "success_count": len(success_names),
+        "success_names": success_names
+    }
+
+@router.get("/api/file/query/memes", summary="查询表情包", description="【文搜图】根据文本查询表情包")
+async def query_memes_query(query_text: str = Query(..., description="查询文本")):
+    results = embedding_util.query_memes_by_text(query_text)
+    logger.debug(str(results))
+    return results
 
 

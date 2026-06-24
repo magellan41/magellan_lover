@@ -206,7 +206,7 @@ async def detail_schedule_task():
     "activity": "活动名称",
     "detail": "关于活动的详细描述",
 }}
-请你严格遵守以上格式返回，不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
+仅需返回一个json对象，表示当前时间点需要进行的活动及其信息。请你严格遵守以上格式返回，不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
 """
     res = await asyncio.to_thread(agent_util.agents["story"].chat, detail_schedule_prompt)
     detail_schedule_json = common_util.safe_json_loads(res)

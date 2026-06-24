@@ -93,7 +93,18 @@ try:
         """)
         logger.info(f"创建日程细节表成功")
 
-
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS memes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            path varchar(255) NOT NULL,
+            url varchar(255) NOT NULL,
+            md5_val varchar(255) NOT NULL,
+            try_to_save_vector TINYINT(1) NOT NULL DEFAULT 0,
+            vector_status TINYINT(1) NOT NULL DEFAULT 0,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建表情包表成功")
 
     connection.commit()
 except Exception as e:

@@ -132,18 +132,30 @@ class Agent:
 
 
     def chat(self, messages, message_type="user"):
+        """
+        chat agent接收[(text, content), (image, path)...]
+        memes agent接收base64编码的图片字符串
+        其它agent接收content
+        """
         # logger.debug(f"chat: {self.continuous_dialogue}")
         try:
+            logger.debug(f"agent_type: {self.agent_type}")
             if self.agent_type == "chat":
                 if isinstance(messages, str):
                     messages = [("text", messages)]
                 message = message_argument_before_add(messages, message_type)
+            elif self.agent_type == "memes":
+                message = [
+                    {"type": "image_url", "image_url": {"url": messages}},
+                    {"type": "text", "text": "请你解释表情包的含义,返回表情包的具体内容、表情包的含义、表情包的使用场景。不需要添加任何问候或前缀（如“好的”、“以下是表情包的解析”等）。"}
+                ]
             else:
                 message = messages
             if self.continuous_dialogue:
                 self.add_message("user", message)
             else:
                 self.conversation.append({"role": "user", "content": message})
+            logger.debug(f"当前conversation: {self.conversation}")
             retry = 5
             response_message = None
             for i in range(retry):

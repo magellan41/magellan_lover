@@ -3,7 +3,7 @@ import os
 
 import requests
 
-from utils import env_util, common_util, setting
+from utils import env_util, common_util, setting, embedding_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -175,8 +175,13 @@ def selfie_generate(prompt):
 
 
 
+def query_memes_by_text(query_text: str):
+    return str(embedding_util.query_memes_by_text(query_text))
+
+
 function_dic = {
     "selfie_generate": selfie_generate,
+    "query_memes_by_text": query_memes_by_text,
 }
 
 function_call_descriptions = [
@@ -184,7 +189,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "selfie_generate",
-            "description": "生成角色自拍,生成成功后返回图片路径。请你在回复的`content`字段中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示,注意不要破坏回复的json结构",
+            "description": "生成角色自拍,生成成功后返回图片路径。请你在回复的`content`部分中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -193,7 +198,21 @@ function_call_descriptions = [
                 "required": ["prompt"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_memes_by_text",
+            "description": "根据文本查询表情包,文本可以是想要表达的情感，想说的话，工具通过语义匹配返回表情包id以及对表情包的描述。你可以使用<memes>表情包id</memes>格式的字符串插入到回复的`content`部分中，用于向用户发送表情包。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query_text": {"type": "string","description": "用于文搜图的文本，可以是想要表达的情感，想说的话"}
+                },
+                "required": ["query_text"]
+            }
+        }
+       }
 ]
 def execute_function(name, args):
     logger.debug(f"执行函数: {name}，参数: {args}")

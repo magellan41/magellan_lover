@@ -4,6 +4,7 @@ import json
 import os
 import re
 import time
+import hashlib
 
 from PIL import Image
 
@@ -35,6 +36,9 @@ def base64_encode(image_path):
 
     return f"data:{mime_type};base64,{base64_str}"
 
+
+def get_md5_val(content: bytes):
+    return hashlib.md5(content).hexdigest()
 
 
 def message_argument_before_add(messages, message_type="user"):

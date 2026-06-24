@@ -17,7 +17,8 @@
   "agents": {
     "chat": "your_platform_name/your-model-name",
     "compact": "your_platform_name/your-model-name",
-    "memory": "your_platform_name/your-model-name"
-    "story": "your_platform_name/your-model-name"
+    "memory": "your_platform_name/your-model-name",
+    "story": "your_platform_name/your-model-name",
+    "memes": "your_platform_name/your-model-name"
   }
 }

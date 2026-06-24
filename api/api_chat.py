@@ -9,6 +9,7 @@ from api import api_file
 from entity.Chat import ChatMessageItem, ChatListResponse
 from orm.dialog_history_orm import DialogueHistoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
+from orm.memes_orm import MemesOrm
 from utils import agent_util, common_util, setting
 
 import logging
@@ -22,6 +23,7 @@ router = APIRouter(tags=["聊天接口"])
 
 short_term_memory_orm_obj = ShortTermMemoryORM()
 dialogue_history_orm_obj = DialogueHistoryOrm()
+memes_orm_obj = MemesOrm()
 
 @router.get("/api/chat/list/{min_id}", summary="获取聊天记录", description="每次返回100条，min_id 为上一次查询的最小 id，第一次调用时 min_id 为 -1")
 async def chat_list(min_id: int) -> ChatListResponse:
@@ -38,6 +40,7 @@ delay_task: asyncio.Task | None = None
 # 用于向 SSE 长连接推送数据的管道
 sse_push_queue: asyncio.Queue = asyncio.Queue()
 active_connections: set = set()
+
 
 
 async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "user"):
@@ -85,7 +88,7 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
         logger.debug(f"清理后内容: {content}")
 
     # content_list = content.split("\n\n")
-    split_pattern = r'(\n|<selfie>.*?</selfie>)'
+    split_pattern = r'(\n|<selfie>.*?</selfie>|<memes>.*?</memes>)'
     content_list = [part for part in re.split(split_pattern, content) if part]
     logger.debug(f"split后内容列表: {content_list}")
     for item in content_list:
@@ -96,6 +99,16 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
             item = item.replace("<selfie>", "").replace("</selfie>", "")
             dialogue_history_orm_obj.insert(item, "agent", "image")
             item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+        elif item.startswith("<memes>"):
+            item = item.replace("<memes>", "").replace("</memes>", "")
+            try:
+                id = int(item)
+                memes_obj = memes_orm_obj.select_by_id(id)
+                dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\"}}"
+            except Exception as e:
+                logger.error(f"memes error: {e}")
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\"}}"
         elif voice_flag:
             success, voice_path = voice_generation(item)
             logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}")
