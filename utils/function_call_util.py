@@ -189,7 +189,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "selfie_generate",
-            "description": "生成角色自拍,生成成功后返回图片路径。请你在回复的`content`部分中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示",
+            "description": "生成角色自拍,生成成功后返回图片路径。请你在回复的`content`部分中插入<selfie>图片路径</selfie>格式的字符串，用于向用户展示，不需要用户主动要求，你可以自主决定发送自拍。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -203,7 +203,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "query_memes_by_text",
-            "description": "根据文本查询表情包,文本可以是想要表达的情感，想说的话，工具通过语义匹配返回表情包id以及对表情包的描述。你可以使用<memes>表情包id</memes>格式的字符串插入到回复的`content`部分中，用于向用户发送表情包。",
+            "description": "根据文本查询表情包,文本可以是想要表达的情感，想说的话，工具通过语义匹配返回表情包id以及对表情包的描述。你可以使用<memes>表情包id</memes>格式的字符串插入到回复的`content`部分中，用于向用户发送表情包，不需要用户主动要求，你可以自主决定发送表情包。",
             "parameters": {
                 "type": "object",
                 "properties": {
