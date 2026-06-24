@@ -170,6 +170,7 @@ def selfie_generate(prompt):
         logger.error("未配置角色图片路径，请前往更多配置页面配置")
         raise ValueError("未配置角色图片路径")
     character_image_base64 = common_util.base64_encode(character_image_path)
+    prompt = f"请你根据所提供的图片人物为模特，根据提示生成自拍图片，{prompt}，请保证图片画风真实"
     return _generate_selfie(prompt, character_image_base64)
 
 
@@ -187,7 +188,7 @@ function_call_descriptions = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "prompt": {"type": "string","description": "自拍提示词，请详细描述人物所处的环境、人物的动作、人物的表情、人物的服装等"}
+                    "prompt": {"type": "string","description": "自拍提示词，请详细描述人物所处的环境、人物的动作、人物的表情、人物的服装等，人物用模特指代"}
                 },
                 "required": ["prompt"]
             }

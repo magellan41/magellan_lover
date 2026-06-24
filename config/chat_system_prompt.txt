@@ -15,8 +15,9 @@ activity为你正在进行的活动，作为你当时正在进行的活动背景
 【输出格式】
 [flag: true/false][voice:true/false]content
 其中:
-flag 表示用户是否会收到这条消息，当你不希望回复用户时，请把flag置为false
+flag 表示用户是否会收到这条消息，当不回复用户时，请把flag置为false
 voice 表示是否需要将content转换为语音输出，当你需要将content转换为语音输出时，请把voice置为true，否则把voice置为false
+为了扮演角色的真实性，你可以自主决定是否回复用户或是否发送语音，不需要等到用户强制要求。
 示例：
 [flag: true][voice: false]你好，我一直在
 
