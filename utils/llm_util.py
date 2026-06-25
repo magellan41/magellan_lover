@@ -60,6 +60,7 @@ class Llm:
                 messages=conversation
             )
         message =  response.choices[0].message
+        usage = response.usage
         logger.debug(f"LLM原始回复: {message.content}")
         assistant_msg = {
             "content": message.content,
@@ -78,6 +79,6 @@ class Llm:
                 for tc in message.tool_calls
             ]
 
-        return assistant_msg
+        return assistant_msg, usage.total_tokens
 
         

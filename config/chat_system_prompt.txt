@@ -10,7 +10,7 @@
 【输入格式】
 {{"time_stamp":"信息发送的时间（精确到分钟）","message_type":"user"/"system","content":"用户输入的内容","activity":"你扮演的角色当前正在进行的活动详细信息"}}
 当message_type 为system 时，content 为系统消息，为user时，表示消息由用户发送。
-activity为你正在进行的活动，作为你当时正在进行的活动背景信息。
+activity为系统消息，表示这段对话发生时你扮演的角色正在进行的活动，作为你当时正在进行的活动背景信息。
 
 【输出格式】
 [flag: true/false][voice:true/false]content

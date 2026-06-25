@@ -92,7 +92,7 @@ class Agent:
         self.conversation = [
             {"role": "system", "content": self.system_prompt}
         ]
-        self.total_tokens = estimate_tokens(self.conversation)
+        # self.total_tokens = estimate_tokens(self.conversation)
         if self.agent_type == "chat":
             history_dialogues = short_term_memory_orm_obj.get_original_memory()
             for dialogue in history_dialogues:
@@ -106,8 +106,8 @@ class Agent:
                             content = [{"type": "text", "text": "用户发送了一张图片"}]
                     dialogue_json['content'] = content
                 self.conversation.append(dialogue_json)
-                self.total_tokens += dialogue.tokens
-        logger.debug(f"conversation: {self.conversation}, total_tokens: {self.total_tokens}")
+                # self.total_tokens += dialogue.tokens
+        logger.debug(f"conversation: {self.conversation}")
 
     # def add_messages(self, role, messages):
     #     for message in messages:
@@ -121,13 +121,13 @@ class Agent:
             message_in_conversation["role"] = "assistant"
         else:
             message_in_conversation = {"role": role, "content": message}
-        tokens = estimate_tokens(message_in_conversation)
-        self.total_tokens += tokens
+        # tokens = estimate_tokens(message_in_conversation)
+        # self.total_tokens += tokens
         self.conversation.append(message_in_conversation)
 
         message_in_db = json.dumps(message_in_conversation, ensure_ascii=False)
         logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
-        short_term_memory_orm_obj.insert(role, message_in_db, tokens)
+        short_term_memory_orm_obj.insert(role, message_in_db, 0)
 
 
 
@@ -163,7 +163,9 @@ class Agent:
             response_message = None
             while tools_call < max_tools_call and formate_retry < max_formate_retry:
                 try:
-                    response_message = self.llm.chat(self.conversation)
+                    response_message, tokens_used = self.llm.chat(self.conversation)
+                    self.total_tokens = tokens_used
+                    logger.debug(f"当前total_tokens: {self.total_tokens}")
                 except ValueError:
                     logger.error(f"模型输出格式错误,重试中,第{formate_retry+1}次")
                     formate_retry += 1
@@ -205,7 +207,7 @@ class Agent:
                 self.conversation = [
                     {"role": "system", "content": self.system_prompt}
                 ]
-                self.total_tokens = estimate_tokens(self.conversation)
+                # self.total_tokens = estimate_tokens(self.conversation)
 
             return response_message["content"]
         except Exception as e:
@@ -227,7 +229,7 @@ class Agent:
         # 新的对话记录
         self.conversation = [{"role": "system", "content": new_system_prompt}] + self.conversation[self.conversation_not_in_compact_indx:]
         # 计算新的 Token 数量
-        self.total_tokens = estimate_tokens(self.conversation)
+        # self.total_tokens = estimate_tokens(self.conversation)
         # 标记压缩短期记忆数据
         short_term_memory_orm_obj.compact(compact_time)
         # 新增中期记忆
