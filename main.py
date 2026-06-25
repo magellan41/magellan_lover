@@ -57,14 +57,16 @@ from api.api_chat import router as chat_router
 from api.api_config import router as config_router
 from api.api_memory import router as memory_router
 from api.api_file import router as file_router
+from api.api_agent_work import router as agent_work_router
+
 
 app.include_router(chat_router)
 app.include_router(config_router)
 app.include_router(memory_router)
 app.include_router(file_router)
+app.include_router(agent_work_router)
 
 from fastapi.staticfiles import StaticFiles
-# app.mount("/uploads", StaticFiles(directory=setting.UPLOAD_PATH), name="uploads")
 app.mount("/static", StaticFiles(directory=setting.STATIC_PATH), name="static")
 
 from utils import voice_generation

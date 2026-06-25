@@ -60,3 +60,16 @@ class DetailScheduleORM:
         finally:
             session.close()
 
+    def select_last_day(self):
+        session = sql_session.get_session()
+        today = datetime.datetime.now().date()
+        yesterday = today - datetime.timedelta(days=1)
+        start_of_yesterday = datetime.datetime.combine(yesterday, datetime.datetime.min.time())
+        end_of_yesterday = datetime.datetime.combine(yesterday, datetime.datetime.max.time())
+        query = session.query(DetailSchedule).filter(
+            DetailSchedule.create_time >= start_of_yesterday,
+            DetailSchedule.create_time < end_of_yesterday + datetime.timedelta(days=1)  # 或者 <= end_of_yesterday
+        )
+        return query.all()
+
+

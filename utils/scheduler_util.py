@@ -3,7 +3,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from scheduler.system_scheduler import active_interaction, memory_clear, daily_schedule_task, detail_schedule_task
+from scheduler.system_scheduler import active_interaction, memory_clear, daily_schedule_task, detail_schedule_task, \
+    diary_task
 
 import logging
 
@@ -26,22 +27,31 @@ def add_scheduler_job(func, trigger, task_id):
     )
 
 def init_scheduler():
+    # 每1-10分钟执行一次，主动与用户互动
     _scheduler.add_job(
         func=active_interaction,
         trigger=IntervalTrigger(minutes=1, jitter=540),
         id="active_interaction_task"
     )
+    # 每天凌晨2点半执行一次，写日记
+    _scheduler.add_job(
+        func=diary_task,
+        trigger=CronTrigger(hour=2, minute=30),
+        id="diary_task"
+    )
+    # 每天凌晨3点12分执行一次，清除记忆
     _scheduler.add_job(
         func=memory_clear,
         trigger=CronTrigger(hour=3, minute=12),
         id="memory_clear_task"
     )
+    # 四点半生成当天的日程
     _scheduler.add_job(
         func=daily_schedule_task,
         trigger=CronTrigger(hour=4, minute=30),
         id="daily_schedule_task"
     )
-    # 从6点开始，每5分钟执行一次，直到24点结束
+    # 从6点开始，每5分钟执行一次，直到24点结束，细化日程表
     _scheduler.add_job(
         func=detail_schedule_task,
         trigger=CronTrigger(hour='6-23', minute='*/5'),

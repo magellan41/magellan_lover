@@ -26,10 +26,26 @@ class RemindORM:
         finally:
             session.close()
 
+
+    def delete_by_ids(self, remind_ids: list):
+        session = sql_session.get_session()
+        try:
+            session.query(Remind).filter(Remind.id.in_(remind_ids)).update({"status": 0}, synchronize_session=False)
+            session.commit()
+        finally:
+            session.close()
+
     def select_all(self):
         session = sql_session.get_session()
         try:
             return session.query(Remind).filter(Remind.status == 1).all()
+        finally:
+            session.close()
+
+    def select_by_ids(self, remind_ids: list):
+        session = sql_session.get_session()
+        try:
+            return session.query(Remind).filter(Remind.id.in_(remind_ids)).all()
         finally:
             session.close()
 

@@ -15,8 +15,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 from orm.schedule_orm import DetailScheduleORM
+from orm.diary_orm import DiaryORM
 detail_schedule_orm_obj = DetailScheduleORM()
-
+diary_orm_obj = DiaryORM()
 
 
 QUIET_START_HOUR = 23  # 23点
@@ -216,3 +217,12 @@ async def detail_schedule_task():
 
 
 
+
+async def diary_task():
+    yesterday_schedule = detail_schedule_orm_obj.select_last_day()
+    if yesterday_schedule:
+        yesterday_schedule_str = "\n".join([f"{item.start_time.strftime('%H:%M')} - {item.end_time.strftime('%H:%M')} {item.activity} {item.detail}" for item in yesterday_schedule])
+        prompt = f"【你昨天一天的完整经历】\n{yesterday_schedule_str}，请你根据你的经历以及对话记录，写一篇日记，或者可以所心所欲写一篇文章，本次返回不需要添加任何语气词以及前缀头，你可以随心所欲，写任何你所想的内容"
+        res = await asyncio.to_thread(agent_util.agents["story"].diary, prompt)
+        logger.info(f"写日记: {res}")
+        diary_orm_obj.insert(res)

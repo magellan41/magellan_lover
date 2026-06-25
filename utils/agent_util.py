@@ -130,6 +130,15 @@ class Agent:
         logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
         short_term_memory_orm_obj.insert(role, message_in_db, 0)
 
+    def diary(self, prompt):
+        _conversations = self.conversation.copy()
+        _conversations.append({"role": "user", "content": prompt})
+        response_message, _ = self.llm.chat(_conversations)
+
+        response_data = response_message.get("content", "")
+        return response_data
+
+
 
 
     def chat(self, messages, message_type="user"):

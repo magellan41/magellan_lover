@@ -120,6 +120,17 @@ try:
         """)
         logger.info(f"创建提醒表成功")
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS diary (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title CHAR(100) NOT NULL,
+            content TEXT NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建日记表成功")
+
     connection.commit()
 except Exception as e:
     logger.error(f"创建库建表失败: {e}")
