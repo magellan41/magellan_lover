@@ -10,7 +10,7 @@ from entity.Chat import ChatMessageItem, ChatListResponse
 from orm.dialog_history_orm import DialogueHistoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from orm.memes_orm import MemesOrm
-from utils import agent_util, common_util, setting
+from utils import agent_util, common_util, setting, sse_util
 
 import logging
 
@@ -23,7 +23,7 @@ router = APIRouter(tags=["聊天接口"])
 
 short_term_memory_orm_obj = ShortTermMemoryORM()
 dialogue_history_orm_obj = DialogueHistoryOrm()
-memes_orm_obj = MemesOrm()
+
 
 @router.get("/api/chat/list/{min_id}", summary="获取聊天记录", description="每次返回100条，min_id 为上一次查询的最小 id，第一次调用时 min_id 为 -1")
 async def chat_list(min_id: int) -> ChatListResponse:
@@ -39,97 +39,8 @@ message_buffer: list[tuple[str, str]] = []
 delay_task: asyncio.Task | None = None
 # 用于向 SSE 长连接推送数据的管道
 sse_push_queue: asyncio.Queue = asyncio.Queue()
-active_connections: set = set()
 
 
-
-async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "user"):
-    """调用 Agent"""
-
-    # 调用 Agent 获取完整响应
-    chat_agent = agent_util.agents["chat"]
-    response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
-    if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
-        # 报错落库
-        dialogue_history_orm_obj.insert(response_data, "agent", "text")
-        if active_connections:
-            await asyncio.gather(*[
-                conn_queue.put(response_data) for conn_queue in active_connections
-            ])
-        return
-
-    # 清理文本
-    pattern = r'\[flag:\s*(?P<flag>.*?)\]\[voice:\s*(?P<voice>.*?)\](?P<content>.*)'
-    match = re.search(pattern, response_data,flags=re.DOTALL)
-    if match:
-        result = match.groupdict()
-    else:
-        result = {"flag": "true", "voice": "false", "content": response_data}
-    flag = result["flag"] == "true" or result["flag"] == "True"
-    if not flag:
-        logger.debug(f"flag: {flag}, 不回复用户")
-        return
-    voice_flag = result["voice"] == "true" or result["voice"] == "True"
-    content = result["content"]
-
-    content = content.replace("）", ")").replace("（", "(")
-    # 非语音模式下，移除所有语气词
-    if not voice_flag:
-        # interjection = ["(chuckle)", "(laughs)", "(sneezes)", "(coughs)", "(clear-throat)", "(groans)", "(breath)",
-        #                 "(pant)", "(inhale)", "(exhale)", "(gasps)", "(sighs)", "(sniffs)", "(snorts)", "(burps)",
-        #                 "(lip-smacking)", "(humming)", "(hissing)", "(emm)"]
-        # pattern1 = "|".join(map(re.escape, interjection))
-        pattern1 = r'\([a-zA-Z-]+\)'
-        pattern2 = r'<#\d+(?:\.\d+)?#>'
-        pattern = f"{pattern1}|{pattern2}"
-        new_str = re.sub(pattern, "", content)
-        new_str = re.sub(r'[^\S\n]+', ' ', new_str).strip()
-        content = new_str
-        logger.debug(f"清理后内容: {content}")
-
-    # content_list = content.split("\n\n")
-    split_pattern = r'(\n|<selfie>.*?</selfie>|<memes>.*?</memes>)'
-    content_list = [part for part in re.split(split_pattern, content) if part]
-    logger.debug(f"split后内容列表: {content_list}")
-    for item in content_list:
-        item = item.strip()
-        if item == "" or item == r"\n\n" or item == r"\n" or item == r"<selfie>" or item == r"</selfie>":
-            continue
-        if item.startswith("<selfie>"):
-            item = item.replace("<selfie>", "").replace("</selfie>", "")
-            dialogue_history_orm_obj.insert(item, "agent", "image")
-            item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
-        elif item.startswith("<memes>"):
-            item = item.replace("<memes>", "").replace("</memes>", "")
-            try:
-                id = int(item)
-                memes_obj = memes_orm_obj.select_by_id(id)
-                dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\"}}"
-            except Exception as e:
-                logger.error(f"memes error: {e}")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\"}}"
-        elif voice_flag:
-            success, voice_path, duration_seconds = voice_generation(item)
-            logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}, duration_seconds: {duration_seconds}")
-            if success:
-                item = voice_path
-                dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
-            else:
-                # 语音合成失败，直接插入文本
-                dialogue_history_orm_obj.insert(item, "agent", "text")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
-        else:
-            dialogue_history_orm_obj.insert(item, "agent", "text")
-            item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
-
-        # 将 Agent 的响应封装并推入 SSE 管道
-        # await sse_push_queue.put(response_data)
-        if active_connections:
-            await asyncio.gather(*[
-                conn_queue.put(item) for conn_queue in active_connections
-            ])
 
 async def delayed_call():
     """
@@ -141,7 +52,7 @@ async def delayed_call():
         # logger.debug(f"delayed_call messages: {messages}")
         message_buffer.clear()
         if messages:
-            await trigger_agent(messages)
+            await agent_util.trigger_agent(messages)
     finally:
         global delay_task
         delay_task = None
@@ -194,7 +105,7 @@ async def chat_stream():
     async def event_generator():
         queue: asyncio.Queue = asyncio.Queue(maxsize=64)
         try:
-            active_connections.add(queue)
+            sse_util.active_connections.add(queue)
             while True:
                 # 阻塞等待，直到 Agent 把结果塞入队列
                 response = await queue.get()
@@ -207,6 +118,6 @@ async def chat_stream():
         except ConnectionResetError:
             pass
         finally:
-            active_connections.discard(queue)
+            sse_util.active_connections.discard(queue)
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

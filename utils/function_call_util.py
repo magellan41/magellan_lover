@@ -4,7 +4,7 @@ import time
 
 import requests
 
-from utils import env_util, common_util, setting, embedding_util
+from utils import env_util, common_util, setting, embedding_util, remind_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -230,10 +230,15 @@ def _query_memes_by_text(query_text: str):
     return str(embedding_util.query_memes_by_text(query_text))
 
 
+def _remind(remind_name: str, prompt: str, remind_time: dict, remind_time_type: str = "increment"):
+    res = remind_util.add_remind(remind_name, prompt, remind_time,remind_time_type)
+    return str(res)
+
 function_dic = {
     "selfie_generate": _selfie_generate,
     "query_memes_by_text": _query_memes_by_text,
     "zhihu_search": _zhihu_search,
+    "remind": _remind,
 }
 
 function_call_descriptions = [
@@ -278,7 +283,24 @@ function_call_descriptions = [
                 "required": ["query_text"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "remind",
+            "description": "添加提醒任务,当你需要主动向用户发起消息时，例如：与用户约定什么时候提醒用户、你主动发现用户需要你提醒用户做一些事情、你认为你扮演的角色需要在某个时间主动联系用户，你可以使用这个工具添加提醒任务。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "remind_name": {"type": "string","description": "任务的名称"},
+                    "prompt": {"type": "string","description": "任务的提示词，在任务被触发时用于提醒你，应该执行什么任务"},
+                    "remind_time": {"type": "object","description": "任务的触发时间，是一个json对象，包含`years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`字段（值为int类型）, 在增量类型下不需要的字段可以填写0"},
+                    "remind_time_type": {"type": "string","description": "任务的触发时间类型，默认值为increment，可选值为increment或absolute，increment表示任务在当前时间基础上增加指定的时间，absolute表示任务在指定时间触发"}
+                },
+                "required": ["remind_name", "prompt", "remind_time"]
+            }
+        }
+       }
 ]
 def execute_function(name, args):
     logger.debug(f"执行函数: {name}，参数: {args}")

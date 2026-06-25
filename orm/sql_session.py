@@ -107,6 +107,19 @@ try:
         """)
         logger.info(f"创建表情包表成功")
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS remind (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            task_id VARCHAR(255) NOT NULL,
+            task_name VARCHAR(255) NOT NULL,
+            prompt TEXT NOT NULL,
+            create_time DATETIME NOT NULL,
+            trigger_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建提醒表成功")
+
     connection.commit()
 except Exception as e:
     logger.error(f"创建库建表失败: {e}")

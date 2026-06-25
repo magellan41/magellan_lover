@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -10,7 +11,7 @@ from orm.mid_term_memroy_orm import MidTermMemoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from utils.common_util import message_argument_before_add
 from utils.llm_util import Llm
-from utils import setting, env_util, llm_util, config_util, common_util, function_call_util
+from utils import setting, env_util, llm_util, config_util, common_util, function_call_util, voice_generation, sse_util
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +176,13 @@ class Agent:
                     self.add_message("assistant", response_message)
                 # tool_call处理
                 if response_message.get("tool_calls"):
+                    if self.agent_type == "chat" and response_message.get("content"):
+                        response_data = response_message['content'].strip()
+                        if response_data != "":
+                            logger.debug(f"工具调用过程中尝试返回： {response_data}")
+                            # await sse_util.notify_all(response_data)
+                            asyncio.run(sse_util.notify_all(response_data))
+
                     logger.debug("工具调用:")
                     for tool_call in response_message["tool_calls"]:
                         logger.debug(f"调用 ID: {tool_call['id']}")
@@ -392,5 +400,15 @@ holiday需要包含的节假日包括："元旦"、"春节"、"清明节"、"劳
 
 
     
+
+
+
+async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "user"):
+    """调用 Agent"""
+
+    # 调用 Agent 获取完整响应
+    chat_agent = agents["chat"]
+    response_data = await asyncio.to_thread(chat_agent.chat, messages, message_type)
+    await sse_util.notify_all(response_data)
 
 

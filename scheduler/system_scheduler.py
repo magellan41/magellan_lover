@@ -5,12 +5,9 @@ import math
 import os
 import random
 
-from apscheduler.triggers.cron import CronTrigger
 
 from utils import env_util, setting, holiday_util, common_util, agent_util
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 
 import logging
 
@@ -20,7 +17,7 @@ logger = logging.getLogger(__name__)
 from orm.schedule_orm import DetailScheduleORM
 detail_schedule_orm_obj = DetailScheduleORM()
 
-scheduler = AsyncIOScheduler()
+
 
 QUIET_START_HOUR = 23  # 23点
 QUIET_END_HOUR = 8     # 次日8点
@@ -67,8 +64,7 @@ async def active_interaction():
         minutes, seconds = divmod(remainder, 60)
         logger.debug(f"距离上次对话 {hours} 小时 {minutes} 分钟 {seconds} 秒")
         # 主动发起对话
-        from api.api_chat import trigger_agent
-        await trigger_agent([("text", f"距离上次与用户对话 {hours} 小时 {minutes} 分钟 {seconds} 秒，你可以尝试发起与用户的对话。")], "system")
+        await agent_util.trigger_agent([("text", f"距离上次与用户对话 {hours} 小时 {minutes} 分钟 {seconds} 秒，你可以尝试发起与用户的对话。")], "system")
 
 
 # ==================================记忆清理任务=====================================
@@ -220,28 +216,3 @@ async def detail_schedule_task():
 
 
 
-def init_scheduler():
-    scheduler.add_job(
-        func=active_interaction,
-        trigger=IntervalTrigger(minutes=1, jitter=540),
-        id="active_interaction_task"
-    )
-    scheduler.add_job(
-        func=memory_clear,
-        trigger=CronTrigger(hour=3, minute=12),
-        id="memory_clear_task"
-    )
-    scheduler.add_job(
-        func=daily_schedule_task,
-        trigger=CronTrigger(hour=4, minute=30),
-        id="daily_schedule_task"
-    )
-    # 从6点开始，每5分钟执行一次，直到24点结束
-    scheduler.add_job(
-        func=detail_schedule_task,
-        trigger=CronTrigger(hour='6-23', minute='*/5'),
-        # trigger=CronTrigger(minute='*/5'),
-        id="detail_schedule_task"
-    )
-    scheduler.start()
-    logger.info("系统定时任务调度器已启动...")

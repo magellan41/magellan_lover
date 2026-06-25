@@ -57,7 +57,7 @@ def message_argument_before_add(messages, message_type="user"):
     detail_schedule = detail_schedule_orm_obj.select_last()
     activity = "无活动信息"
     if detail_schedule:
-        activity =f"【活动名称】:{detail_schedule.activity}  【活动细节】:{detail_schedule.detail}"
+        activity =f"【你当前正在进行的活动名称】:{detail_schedule.activity}  【你当前正在进行的活动细节】:{detail_schedule.detail}"
 
     text = f"{{\"time_stamp\": \"{time.strftime('%Y-%m-%d %H:%M CST', time.localtime())}\", \"message_type\": \"{message_type}\", \"content\": \"{text}\", \"activity\": \"{activity}\"}}"
     res = [

@@ -27,20 +27,20 @@ logging.basicConfig(
 
 # =============================定时任务=============================
 from contextlib import asynccontextmanager
-from scheduler.system_scheduler import scheduler, init_scheduler, daily_schedule_task
+from scheduler.system_scheduler import daily_schedule_task
+from utils import scheduler_util
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. 启动时：初始化并启动定时任务
-    init_scheduler()
+    scheduler_util.init_scheduler()
     # 初始化每日日程表
     await daily_schedule_task()
     yield  # FastAPI 主程序运行中...
 
     # 2. 关闭时：优雅地关闭定时任务
-    scheduler.shutdown(wait=False)
-    print("系统定时任务调度器已停止。")
+    scheduler_util.stop_scheduler()
 
 
 app = FastAPI(title="Magellan Lover 服务", lifespan=lifespan)
