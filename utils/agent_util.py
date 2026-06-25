@@ -228,8 +228,8 @@ class Agent:
         new_system_prompt = self.system_prompt + "【历史对话记录摘要】：\n" + res
         # 新的对话记录
         self.conversation = [{"role": "system", "content": new_system_prompt}] + self.conversation[self.conversation_not_in_compact_indx:]
-        # 计算新的 Token 数量
-        # self.total_tokens = estimate_tokens(self.conversation)
+        # 重置 Token 数量
+        self.total_tokens = 0
         # 标记压缩短期记忆数据
         short_term_memory_orm_obj.compact(compact_time)
         # 新增中期记忆
@@ -238,11 +238,13 @@ class Agent:
     def compact(self):
         if self.total_tokens > self.max_context_windows * 0.5 and not self.compact_running.is_set():
             self.compact_running.set()
-            try:
-                thread = threading.Thread(target=self.compact_history)
-                thread.start()
-            finally:
-                self.compact_running.clear()
+            # 双重检查，避免重复压缩
+            if self.total_tokens > self.max_context_windows * 0.5:
+                try:
+                    thread = threading.Thread(target=self.compact_history)
+                    thread.start()
+                finally:
+                    self.compact_running.clear()
 
 
 
