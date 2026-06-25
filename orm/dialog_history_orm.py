@@ -10,10 +10,10 @@ class DialogueHistoryOrm:
     def __init__(self):
         pass
 
-    def insert(self, content: str, role: str, content_type: str):
+    def insert(self, content: str, role: str, content_type: str, duration_seconds: float=0.0):
         session = sql_session.get_session()
         try:
-            new_dialogue_history = DialogueHistory(role=role, content=content, type=content_type, create_time=datetime.datetime.now())
+            new_dialogue_history = DialogueHistory(role=role, content=content, type=content_type, create_time=datetime.datetime.now(), duration_seconds=duration_seconds)
             session.add(new_dialogue_history)
             session.commit()
         finally:

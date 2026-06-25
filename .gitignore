@@ -33,6 +33,7 @@ uploads/avatar/
 uploads/common/
 *.log
 config/rough_schedule.json
+config/memes_db
 
 # ==================== IDE / 编辑器 ====================
 .vscode/

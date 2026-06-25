@@ -28,7 +28,7 @@ memes_orm_obj = MemesOrm()
 @router.get("/api/chat/list/{min_id}", summary="获取聊天记录", description="每次返回100条，min_id 为上一次查询的最小 id，第一次调用时 min_id 为 -1")
 async def chat_list(min_id: int) -> ChatListResponse:
     conversation = dialogue_history_orm_obj.list(min_id)
-    conversation = [ChatMessageItem(id=item.id, role=item.role, type=item.type, content=item.content, time_stamp=item.create_time) for item in conversation]
+    conversation = [ChatMessageItem(id=item.id, role=item.role, type=item.type, content=item.content, time_stamp=item.create_time, duration_seconds=item.duration_seconds) for item in conversation]
     return ChatListResponse(data=conversation)
 
 
@@ -110,12 +110,12 @@ async def trigger_agent(messages: list[tuple[str, str]], message_type: str = "us
                 logger.error(f"memes error: {e}")
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\"}}"
         elif voice_flag:
-            success, voice_path = voice_generation(item)
-            logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}")
+            success, voice_path, duration_seconds = voice_generation(item)
+            logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}, duration_seconds: {duration_seconds}")
             if success:
                 item = voice_path
-                dialogue_history_orm_obj.insert(item, "agent", "voice")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+                dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
             else:
                 # 语音合成失败，直接插入文本
                 dialogue_history_orm_obj.insert(item, "agent", "text")

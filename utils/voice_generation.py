@@ -88,13 +88,16 @@ def voice_generation_minimax(api_key:str, text: str, speed: float=1.0, emotion: 
 
         with open(output_filename, "wb") as f:
             f.write(audio_bytes)
-        return True, f"/static/voice/{date_str}/{output_filename.split('/')[-1]}"
+        file_size_bytes = os.path.getsize(output_filename)
+        bitrate_bps = 128000
+        duration_seconds = (file_size_bytes * 8) / bitrate_bps
+        return True, f"/static/voice/{date_str}/{output_filename.split('/')[-1]}", duration_seconds
     except requests.exceptions.RequestException as e:
         logger.error(f"网络请求错误: {e}")
-        return False, None
+        return False, None, 0
     except Exception as e:
         logger.error(f"处理失败: {e}")
-        return False, None
+        return False, None, 0
 
 
 voice_generation_dic = {
@@ -109,8 +112,8 @@ def voice_generation(text: str) -> tuple:
     logger.debug(f"语音状态: {_voice_enable}，{ _voice_enable != "true"}")
     if _voice_enable != "true":
         logger.info("语音合成已禁用")
-        return False, None
+        return False, None, 0
     if _voice_generation_type not in voice_generation_dic:
         logger.error(f"不支持的语音合成类型: {_voice_generation_type}")
-        return False, None
+        return False, None, 0
     return voice_generation_dic[_voice_generation_type](_voice_api_key, text)

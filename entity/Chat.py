@@ -9,6 +9,7 @@ class ChatMessageItem(BaseModel):
     role: str = Field(..., description="角色：user/assistant")
     type: str = Field(..., description="消息类型：text/image/voice")
     content: str = Field(..., description="消息内容")
+    duration_seconds: float = Field(0.0, description="语音持续时间")
     time_stamp: datetime.datetime = Field(..., description="消息发送时间")
 
 class ChatListResponse(BaseModel):

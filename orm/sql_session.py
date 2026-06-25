@@ -66,6 +66,7 @@ try:
             role TEXT NOT NULL,
             type VARCHAR(10) NOT NULL,
             content TEXT NOT NULL,
+            duration_seconds FLOAT NOT NULL DEFAULT 0.0,
             create_time DATETIME NOT NULL,
             status TINYINT(1) NOT NULL DEFAULT 1
             )
