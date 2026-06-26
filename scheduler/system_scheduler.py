@@ -201,8 +201,9 @@ async def detail_schedule_task():
     "start_time": "开始时间(%Y-%m-%d %H:%M:%S)",
     "end_time": "结束时间(%Y-%m-%d %H:%M:%S)",
     "activity": "活动名称",
-    "detail": "关于活动的详细描述",
+    "detail": "关于活动的详细描述，请以二人称形式描述，详细描述发生了'你'做了什么。",
 }}
+如果时间为24:00，请以次日00:00表示。
 仅需返回一个json对象，表示当前时间点需要进行的活动及其信息。请你严格遵守以上格式返回，不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
 """
     res = await asyncio.to_thread(agent_util.agents["story"].chat, detail_schedule_prompt)
