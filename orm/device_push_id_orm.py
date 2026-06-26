@@ -15,9 +15,12 @@ class DevicePushInfoOrm:
         self.device_push_info_list = None
 
     def insert_device_push_id(self, push_id: str):
-        new_device_push_info = DevicePushInfo(push_id=push_id, create_time=datetime.datetime.now())
         session = sql_session.get_session()
         try:
+            exist = session.query(DevicePushInfo).filter(DevicePushInfo.device_push_id == push_id, DevicePushInfo.status == 1).first()
+            if exist is not None:
+                return
+            new_device_push_info = DevicePushInfo(push_id=push_id, create_time=datetime.datetime.now())
             session.add(new_device_push_info)
             self.device_push_info_list = None
             session.commit()
