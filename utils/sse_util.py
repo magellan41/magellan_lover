@@ -24,6 +24,7 @@ async def notify_all(response_data):
     else:
         tag = agent_name
     if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
+        push_util.send_push_meizu(f"【错误】{tag}", response_data)
         # 报错落库
         dialogue_history_orm_obj.insert(response_data, "agent", "text")
         if active_connections:

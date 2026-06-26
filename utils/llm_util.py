@@ -1,11 +1,9 @@
-import re
-
+import httpx
 import openai
 
 
 import logging
 
-from schema import ModelResponseSchema
 from utils import config_util, function_call_util
 
 logger = logging.getLogger(__name__)
@@ -43,7 +41,8 @@ def init_models():
 class Llm:
     def __init__(self, base_url, api_key, model_name, agent_type):
         # print(base_url, api_key, model_name, agent_type)
-        self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
+        # 设置超时时间，防止LLM调用阻塞
+        self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=httpx.Timeout(120.0, connect=10.0))
         self.model_name = model_name
         self.agent_type = agent_type
 
