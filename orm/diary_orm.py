@@ -26,10 +26,10 @@ class DiaryORM:
     def list_diary_titles(self, mini_id: int):
         session = sql_session.get_session()
         try:
-            query = session.query(Diary.title).filter(Diary.status == 1)
+            query = session.query(Diary.id, Diary.title).filter(Diary.status == 1)
             if mini_id != -1:
                 query = query.filter(Diary.id < mini_id)
-            return [title for (title,) in query.order_by(Diary.id.desc()).limit(100).all()]
+            return [{"id": id, "title": title} for (id, title) in query.order_by(Diary.id.desc()).limit(100).all()]
         finally:
             session.close()
 

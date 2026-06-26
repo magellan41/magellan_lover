@@ -66,17 +66,17 @@ async def notify_all(response_data):
         if item.startswith("<selfie>"):
             item = item.replace("<selfie>", "").replace("</selfie>", "")
             dialogue_history_orm_obj.insert(item, "agent", "image")
-            item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+            item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
         elif item.startswith("<memes>"):
             item = item.replace("<memes>", "").replace("</memes>", "")
             try:
                 id = int(item)
                 memes_obj = memes_orm_obj.select_by_id(id)
                 dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\"}}"
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
             except Exception as e:
                 logger.error(f"memes error: {e}")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\"}}"
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
         elif voice_flag:
             success, voice_path, duration_seconds = voice_generation(item)
             logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}, duration_seconds: {duration_seconds}")
@@ -87,10 +87,10 @@ async def notify_all(response_data):
             else:
                 # 语音合成失败，直接插入文本
                 dialogue_history_orm_obj.insert(item, "agent", "text")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
         else:
             dialogue_history_orm_obj.insert(item, "agent", "text")
-            item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\"}}"
+            item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
 
         # 将 Agent 的响应封装并推入 SSE 管道
         # await sse_push_queue.put(response_data)

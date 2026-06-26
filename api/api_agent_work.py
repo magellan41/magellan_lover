@@ -43,3 +43,9 @@ async def get_diary(diary_id: int) -> DiaryDto:
     return DiaryDto(title=diary.title, content=diary.content)
 
 
+@router.get("/api/agent/selfie", summary="获取智能体自拍", description="获取智能体的自拍")
+async def get_selfie(prompt: str = Body(..., description="自拍提示")) -> str:
+    from utils import function_call_util
+    return await function_call_util.execute_function("selfie_generate", {"prompt": prompt})
+
+
