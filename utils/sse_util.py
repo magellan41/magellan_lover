@@ -6,6 +6,7 @@ from orm.memes_orm import MemesOrm
 
 import logging
 
+from utils import push_util, env_util
 from utils.voice_generation import voice_generation
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,11 @@ dialogue_history_orm_obj = DialogueHistoryOrm()
 memes_orm_obj = MemesOrm()
 
 async def notify_all(response_data):
+    agent_name = env_util.read_env_var("agent_name")
+    if agent_name == "未找到该配置项":
+        tag = "来提示啦"
+    else:
+        tag = agent_name
     if isinstance(response_data, str) and response_data.startswith("【ERROR】"):
         # 报错落库
         dialogue_history_orm_obj.insert(response_data, "agent", "text")
@@ -67,6 +73,7 @@ async def notify_all(response_data):
             item = item.replace("<selfie>", "").replace("</selfie>", "")
             dialogue_history_orm_obj.insert(item, "agent", "image")
             item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            push_util.send_push_meizu(tag, "[自拍]")
         elif item.startswith("<memes>"):
             item = item.replace("<memes>", "").replace("</memes>", "")
             try:
@@ -74,6 +81,7 @@ async def notify_all(response_data):
                 memes_obj = memes_orm_obj.select_by_id(id)
                 dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                push_util.send_push_meizu(tag, "[表情包]")
             except Exception as e:
                 logger.error(f"memes error: {e}")
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
@@ -84,12 +92,16 @@ async def notify_all(response_data):
                 item = voice_path
                 dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
+                push_util.send_push_meizu(tag, "[语音]")
             else:
                 # 语音合成失败，直接插入文本
                 dialogue_history_orm_obj.insert(item, "agent", "text")
+                push_util.send_push_meizu(tag, item)
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+
         else:
             dialogue_history_orm_obj.insert(item, "agent", "text")
+            push_util.send_push_meizu(tag, item)
             item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
 
         # 将 Agent 的响应封装并推入 SSE 管道

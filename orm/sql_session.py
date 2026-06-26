@@ -131,6 +131,16 @@ try:
         """)
         logger.info(f"创建日记表成功")
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS device_push_info (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            push_id VARCHAR(255) NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建日记表成功")
+
     connection.commit()
 except Exception as e:
     logger.error(f"创建库建表失败: {e}")
