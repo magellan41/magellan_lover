@@ -3,7 +3,7 @@ import os
 import uuid
 from typing import Any
 
-from fastapi import FastAPI, File, UploadFile, APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi import File, UploadFile, APIRouter, HTTPException, BackgroundTasks, Query
 
 from utils import setting, env_util, common_util, embedding_util
 from utils.env_util import write_env_var

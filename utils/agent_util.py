@@ -11,7 +11,7 @@ from orm.mid_term_memroy_orm import MidTermMemoryOrm
 from orm.short_term_memory_orm import ShortTermMemoryORM
 from utils.common_util import message_argument_before_add
 from utils.llm_util import Llm
-from utils import setting, env_util, llm_util, config_util, common_util, function_call_util, voice_generation, sse_util
+from utils import setting, env_util, llm_util, config_util, common_util, function_call_util, sse_util
 
 logger = logging.getLogger(__name__)
 

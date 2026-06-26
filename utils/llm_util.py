@@ -80,5 +80,3 @@ class Llm:
             ]
 
         return assistant_msg, usage.total_tokens
-
-        

@@ -1,5 +1,6 @@
 import os
 import logging
+from logging.handlers import TimedRotatingFileHandler
 
 from pathlib import Path
 
@@ -16,14 +17,42 @@ from utils import agent_util
 
 # =============================日志配置=============================
 # 全局统一配置根 Logger
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(setting.ROUT_PATH, "logs", "magellan_lover.log"), encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+#     handlers=[
+#         logging.FileHandler(os.path.join(setting.ROUT_PATH, "logs", "magellan_lover.log"), encoding='utf-8'),
+#         logging.StreamHandler()
+#     ]
+# )
+root_logger = logging.getLogger()
+if not root_logger.handlers:
+    root_logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    log_dir = os.path.join(setting.ROUT_PATH, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    log_file_path = os.path.join(log_dir, "magellan_lover.log")
+
+    file_handler = TimedRotatingFileHandler(
+        filename=log_file_path,
+        when='midnight',  # 每天午夜切割
+        interval=1,  # 间隔 1 天
+        backupCount=30,  # 保留最近 30 天
+        encoding='utf-8'
+    )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.INFO)
+
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
 
 # =============================定时任务=============================
 from contextlib import asynccontextmanager

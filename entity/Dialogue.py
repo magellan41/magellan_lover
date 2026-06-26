@@ -1,5 +1,4 @@
-from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, Column, Integer, String, Text, Float
+from sqlalchemy import Column, Integer, String, Text, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import DateTime
 

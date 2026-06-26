@@ -1,11 +1,8 @@
-import os.path
-
 from fastapi import APIRouter, Body
 
 from entity.Memory import MidTermMemoryDto, LongTermMemoryDto
 from orm.long_term_memory_orm import LongTermMemoryOrm
 from orm.mid_term_memroy_orm import MidTermMemoryOrm
-from utils import setting
 
 import logging
 

@@ -1,7 +1,7 @@
 import datetime
 
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import DateTime

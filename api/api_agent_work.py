@@ -1,5 +1,3 @@
-import datetime
-
 from fastapi import APIRouter, Body
 
 from entity.Diary import DiaryDto
