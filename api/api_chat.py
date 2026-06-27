@@ -43,7 +43,7 @@ async def delayed_call():
     防抖、延迟组合消息
     """
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(30)
         messages = message_buffer.copy()
         # logger.debug(f"delayed_call messages: {messages}")
         message_buffer.clear()

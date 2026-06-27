@@ -111,9 +111,6 @@ class Agent:
                 # self.total_tokens += dialogue.tokens
         logger.debug(f"conversation: {self.conversation}")
 
-    # def add_messages(self, role, messages):
-    #     for message in messages:
-    #         self.add_message(role, message)
 
     def add_message(self, role, message):
         if role == "tool":
