@@ -17,6 +17,13 @@ active_connections: set = set()
 dialogue_history_orm_obj = DialogueHistoryOrm()
 memes_orm_obj = MemesOrm()
 
+
+def text_delay(content: str) -> float:
+    """
+    计算文本的延时时间，单位：秒
+    """
+    return len(content) * 0.1
+
 async def notify_all(response_data):
     agent_name = env_util.read_env_var("agent_name")
     if agent_name == "未找到该配置项":
@@ -67,6 +74,8 @@ async def notify_all(response_data):
     content_list = [part for part in re.split(split_pattern, content) if part]
     logger.debug(f"split后内容列表: {content_list}")
     for item in content_list:
+        sleep_trme = 0.3
+        push_content = item
         item = item.strip()
         if item == "" or item == r"\n\n" or item == r"\n" or item == r"<selfie>" or item == r"</selfie>":
             continue
@@ -74,7 +83,8 @@ async def notify_all(response_data):
             item = item.replace("<selfie>", "").replace("</selfie>", "")
             dialogue_history_orm_obj.insert(item, "agent", "image")
             item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
-            push_util.send_push_meizu(tag, "[自拍]")
+            # 自拍不用添加延时
+            push_content = "[自拍]"
         elif item.startswith("<memes>"):
             item = item.replace("<memes>", "").replace("</memes>", "")
             try:
@@ -82,7 +92,8 @@ async def notify_all(response_data):
                 memes_obj = memes_orm_obj.select_by_id(id)
                 dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
-                push_util.send_push_meizu(tag, "[表情包]")
+                # 表情包不用添加延时
+                push_content = "[表情包]"
             except Exception as e:
                 logger.error(f"memes error: {e}")
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
@@ -93,21 +104,26 @@ async def notify_all(response_data):
                 item = voice_path
                 dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
-                push_util.send_push_meizu(tag, "[语音]")
+                # 语音需要添加语音长度/2的延时
+                push_content = "[语音]"
+                sleep_trme += duration_seconds / 2
+        # 发送文本逻辑不用修改提示内容
             else:
                 # 语音合成失败，直接插入文本
                 dialogue_history_orm_obj.insert(item, "agent", "text")
                 push_util.send_push_meizu(tag, item)
                 item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
-
+                sleep_trme += text_delay(item)
         else:
             dialogue_history_orm_obj.insert(item, "agent", "text")
-            push_util.send_push_meizu(tag, item)
             item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            sleep_trme += text_delay(item)
 
         # 将 Agent 的响应封装并推入 SSE 管道
         # await sse_push_queue.put(response_data)
+        await asyncio.sleep(sleep_trme)
         if active_connections:
             await asyncio.gather(*[
                 conn_queue.put(item) for conn_queue in active_connections
             ])
+        push_util.send_push_meizu(tag, push_content)
