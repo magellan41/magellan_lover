@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import logging
+import re
 import threading
 
 from entity.config import RoughSchedule
@@ -187,6 +188,7 @@ class Agent:
                 if response_message.get("tool_calls"):
                     if self.agent_type == "chat" and response_message.get("content"):
                         response_data = response_message['content'].strip()
+                        response_data = common_util.clear_text(response_data)
                         if response_data != "":
                             logger.debug(f"工具调用过程中尝试返回： {response_data}")
                             # await sse_util.notify_all(response_data)
@@ -226,7 +228,9 @@ class Agent:
                 ]
                 # self.total_tokens = estimate_tokens(self.conversation)
 
-            return response_message["content"]
+            response_data = response_message["content"]
+            response_data = common_util.clear_text(response_data)
+            return response_data
         except Exception as e:
             logger.error(f"chat失败,详细信息: {e}")
             return f"【ERROR】: {e}"

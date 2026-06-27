@@ -65,13 +65,15 @@ def message_argument_before_add(messages, message_type="user"):
     ] + [{"type": "text", "text": text}]
     return res
 
-
+def clear_text(text: str):
+    """清除文本中的思考过程内容"""
+    return re.sub(r'<think>.*?</think>', '', text)
 
 def safe_json_loads(text: str):
     """安全解析 JSON，兼容 LLM 返回的包含未转义控制字符的 JSON"""
     text = text.strip()
     # 针对minimax删除思考过程中的内容
-    text = re.sub(r'<think>.*?</think>', '', text)
+    text = clear_text(text)
     json_match = re.search(r"\{.*\}", text, re.DOTALL)
 
     # 检查是否找到JSON格式

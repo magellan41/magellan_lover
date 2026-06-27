@@ -42,7 +42,9 @@ class Llm:
     def __init__(self, base_url, api_key, model_name, agent_type):
         # print(base_url, api_key, model_name, agent_type)
         # 设置超时时间，防止LLM调用阻塞
-        self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=httpx.Timeout(120.0, connect=10.0))
+        self.client = openai.OpenAI(api_key=api_key,
+                                    base_url=base_url,
+                                    timeout=httpx.Timeout(connect=10.0, read=300.0, write=20.0, pool=10.0))
         self.model_name = model_name
         self.agent_type = agent_type
 
@@ -69,7 +71,6 @@ class Llm:
                 {
                     "id": tc.id,
                     "type": tc.type,
-                    "function": tc.function,
                     "function": {
                         "name": tc.function.name,
                         "arguments": tc.function.arguments,
