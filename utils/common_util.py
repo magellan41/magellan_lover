@@ -67,7 +67,7 @@ def message_argument_before_add(messages, message_type="user"):
 
 def clear_text(text: str):
     """清除文本中的思考过程内容"""
-    return re.sub(r'<think>.*?</think>', '', text)
+    return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
 
 def safe_json_loads(text: str):
     """安全解析 JSON，兼容 LLM 返回的包含未转义控制字符的 JSON"""
