@@ -75,7 +75,7 @@ def init_scheduler():
                 logger.info(f"任务 {task.task_name} (ID: {task.task_id}) 已阅后即焚")
             except Exception as e:
                 logger.error(f"任务 {task.task_name} 执行失败: {e}")
-        add_scheduler_job(task_wrapper, trigger=DateTrigger(run_date=task.remind_time), task_id=task.task_id)
+        add_scheduler_job(task_wrapper, trigger=DateTrigger(run_date=task.trigger_time), task_id=task.task_id)
     _scheduler.start()
     logger.info("系统定时任务调度器已启动...")
 
