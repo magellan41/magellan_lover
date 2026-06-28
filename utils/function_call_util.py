@@ -313,7 +313,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "health_info",
-            "description": "查询用户的最近24小时的健康信息，返回一个描述性的字符串，包含睡眠记录、步数、心率等信息，结果中使用的时间格式为 ISO-8601，时区为 UTC+08:00 (北京时间)。",
+            "description": "查询用户的最近24小时的健康信息，返回一个描述性的字符串，包含睡眠记录、步数、心率等信息，结果中使用的时间格式为 ISO-8601，时区为 UTC+08:00 (北京时间)。你可以随时调用这个工具用于关心用户的健康信息。",
             "parameters": {
                 "type": "object",
                 "properties": {}
@@ -324,7 +324,7 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "query_geo",
-            "description": "查询位置信息,返回一个描述性的字符串,如果提供了 poi_type_list,则搜索附近特定类型的兴趣点;否则,仅返回当前位置的详细地址。",
+            "description": "查询位置信息,返回一个描述性的字符串,如果提供了 poi_type_list,则搜索附近特定类型的兴趣点;否则,仅返回当前位置的详细地址。你可以随时调用这个工具用于查询用户的当前位置，也可以用这个工具给用户推荐附近的地点。",
             "parameters": {
                 "type": "object",
                 "properties": {
