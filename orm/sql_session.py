@@ -139,7 +139,74 @@ try:
             status TINYINT(1) NOT NULL DEFAULT 1
             )
         """)
-        logger.info(f"创建日记表成功")
+        logger.info(f"创建设备推送信息表成功")
+
+        # cursor.execute("""
+        # CREATE TABLE IF NOT EXISTS health (
+        #     id INT AUTO_INCREMENT PRIMARY KEY,
+        #     start_time DATETIME NOT NULL,
+        #     end_time DATETIME NOT NULL,
+        #     source VARCHAR(255) NOT NULL,
+        #     unique_mark VARCHAR(255) NOT NULL,
+        #     status TINYINT(1) NOT NULL DEFAULT 1
+        #     )
+        # """)
+        # logger.info(f"创建健康数据表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_heart_rate (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            avg_bpm FLOAT NOT NULL,
+            max_bpm FLOAT NOT NULL,
+            min_bpm FLOAT NOT NULL,
+            latest_bpm FLOAT NOT NULL,
+            sample_count INT NOT NULL,
+            synced_time DATETIME NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建心率数据表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_steps (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            steps INT NOT NULL,
+            synced_time DATETIME NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+            )
+        """)
+        logger.info(f"创建步数数据表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_sleep_session (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            start_time DATETIME NOT NULL,
+            end_time DATETIME NOT NULL,
+            duration_minutes INT NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+        )
+        """)
+        logger.info(f"创建睡眠会话表成功")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_sleep_stage (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            session_id INT NOT NULL,
+            start_time DATETIME NOT NULL,
+            end_time DATETIME NOT NULL,
+            duration_minutes INT NOT NULL,
+            stage VARCHAR(15) NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1,
+            FOREIGN KEY (session_id) REFERENCES health_sleep_session(id)
+        )
+        """)
+        logger.info(f"创建睡眠阶段表成功")
+
+
 
     connection.commit()
 except Exception as e:

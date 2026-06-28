@@ -4,7 +4,7 @@ import time
 
 import requests
 
-from utils import env_util, common_util, setting, embedding_util, remind_util
+from utils import env_util, common_util, setting, embedding_util, remind_util, health_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -234,11 +234,15 @@ def _remind(remind_name: str, prompt: str, remind_time: dict, remind_time_type: 
     res = remind_util.add_remind(remind_name, prompt, remind_time,remind_time_type)
     return str(res)
 
+def _health_info():
+    return health_util.select_last_day_health_data()
+
 function_dic = {
     "selfie_generate": _selfie_generate,
     "query_memes_by_text": _query_memes_by_text,
     "zhihu_search": _zhihu_search,
     "remind": _remind,
+    "health_info": _health_info,
 }
 
 function_call_descriptions = [
@@ -300,7 +304,18 @@ function_call_descriptions = [
                 "required": ["remind_name", "prompt", "remind_time"]
             }
         }
-       }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "health_info",
+            "description": "查询用户的最近24小时的健康信息，返回一个json字符串，包含睡眠记录、步数、心率等信息，结果中使用的时间格式为 ISO-8601，时区为 UTC+08:00 (北京时间)。",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    }
 ]
 def execute_function(name, args):
     logger.debug(f"执行函数: {name}，参数: {args}")
