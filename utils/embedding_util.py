@@ -68,7 +68,7 @@ _memes_collection = _client.get_or_create_collection(
 def save_meme_to_db(image_id: int, image_path: str):
     item_to_base64 = common_util.base64_encode(image_path)
     logger.debug(f"转换为 base64: {item_to_base64}")
-    image_description = agent_util.agents["memes"].chat(item_to_base64)
+    image_description = agent_util.agents["memes"].chat(item_to_base64, "system")
     logger.debug(f"图片描述: {image_description}")
     input_data = [
         {'image': item_to_base64},

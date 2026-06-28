@@ -211,7 +211,7 @@ class Agent:
             if response_message is None:
                 return f"【ERROR】: 模型输出为空,尝试工具调用次数{tools_call},模型输出格式错误重试次数{formate_retry}：{"工具调用链过长" if tools_call > max_tools_call else "模型输出格式错误重试失败"}"
             # 记录用户最后一次回复的消息
-            if message_type == "user":
+            if self.agent_type == "chat" and message_type == "user":
                 env_util.write_env_var(
                     "last_interaction_time",
                     datetime.datetime.now().isoformat())
@@ -398,7 +398,7 @@ holiday需要包含的节假日包括："元旦"、"春节"、"清明节"、"劳
 请你严格按照指定格式返回，请勿添加格式要求以外的其他内容,不要包含任何解释、问候或前缀（如“好的”、“以下是日程”等）。
 """
 
-    rough_schedule_str = story_agent.chat(rough_schedule_prompt)
+    rough_schedule_str = story_agent.chat(rough_schedule_prompt, "system")
     with open(os.path.join(setting.CONFIG_PATH, "rough_schedule.json"), "w", encoding="utf-8") as f:
         f.write(rough_schedule_str)
     logger.info(f"已生成粗略日程：{rough_schedule_str}")

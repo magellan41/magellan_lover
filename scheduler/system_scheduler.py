@@ -88,7 +88,7 @@ async def memory_clear():
         ]
         mid_term_memory_str = "【历史记忆】[" + ",".join([json.dumps(d, ensure_ascii=False) for d in mid_memory_dicts]) + "]"
         try:
-            res = await asyncio.to_thread(agent_util.agents["memory"].chat, mid_term_memory_str)
+            res = await asyncio.to_thread(agent_util.agents["memory"].chat, mid_term_memory_str, "system")
             logger.info(f"记忆清理agent原始返回: {res}")
             res = common_util.safe_json_loads(res).get("delete_memory_id_list", [])
             mid_term_memory_orm_obj.delete_all(res)
@@ -166,7 +166,7 @@ async def daily_schedule_task():
 请你直接返回json对象列表，,不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
 """
     logger.info("开始制定今日日程")
-    res = await asyncio.to_thread(agent_util.agents["story"].chat, daily_schedule_prompt)
+    res = await asyncio.to_thread(agent_util.agents["story"].chat, daily_schedule_prompt, "system")
     # res = json.dumps(common_util.safe_json_loads(res), ensure_ascii=False)
     # logger.info(f"制定今日日程: {res}")
     daily_schedule_orm_obj.insert(day_str, res)
@@ -206,7 +206,7 @@ async def detail_schedule_task():
 如果时间为24:00，请以次日00:00表示。
 仅需返回一个json对象，表示当前时间点需要进行的活动及其信息。请你严格遵守以上格式返回，不要包含任何解释、问候或前缀（如“好的”、“以下是回复”等）。
 """
-    res = await asyncio.to_thread(agent_util.agents["story"].chat, detail_schedule_prompt)
+    res = await asyncio.to_thread(agent_util.agents["story"].chat, detail_schedule_prompt, "system")
     detail_schedule_json = common_util.safe_json_loads(res)
     start_time = detail_schedule_json["start_time"]
     start_datetime = datetime.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
