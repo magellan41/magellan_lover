@@ -4,7 +4,7 @@ import time
 
 import requests
 
-from utils import env_util, common_util, setting, embedding_util, remind_util, health_util
+from utils import env_util, common_util, setting, embedding_util, remind_util, health_util, location_util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -237,12 +237,16 @@ def _remind(remind_name: str, prompt: str, remind_time: dict, remind_time_type: 
 def _health_info():
     return health_util.select_last_day_health_data()
 
+def _query_geo(poi_type_list=None):
+    return location_util.reverse_geocoding(poi_type_list)
+
 function_dic = {
     "selfie_generate": _selfie_generate,
     "query_memes_by_text": _query_memes_by_text,
     "zhihu_search": _zhihu_search,
     "remind": _remind,
     "health_info": _health_info,
+    "query_geo": _query_geo,
 }
 
 function_call_descriptions = [
@@ -309,10 +313,29 @@ function_call_descriptions = [
         "type": "function",
         "function": {
             "name": "health_info",
-            "description": "查询用户的最近24小时的健康信息，返回一个json字符串，包含睡眠记录、步数、心率等信息，结果中使用的时间格式为 ISO-8601，时区为 UTC+08:00 (北京时间)。",
+            "description": "查询用户的最近24小时的健康信息，返回一个描述性的字符串，包含睡眠记录、步数、心率等信息，结果中使用的时间格式为 ISO-8601，时区为 UTC+08:00 (北京时间)。",
             "parameters": {
                 "type": "object",
                 "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_geo",
+            "description": "查询位置信息,返回一个描述性的字符串,如果提供了 poi_type_list,则搜索附近特定类型的兴趣点;否则,仅返回当前位置的详细地址。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "poi_type_list": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "要查询的兴趣点列表,这是一个可选参数,如果不提供则仅返回当前位置的详细地址,否则搜索附近特定类型的兴趣点。可选值为['餐饮服务', '中餐厅', '外国餐厅', '快餐厅', '休闲餐饮场所', '购物服务']"
+                    }
+                },
+                "required": [],
+                "additionalProperties": False
             }
         }
     }

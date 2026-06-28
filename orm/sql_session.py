@@ -206,6 +206,18 @@ try:
         """)
         logger.info(f"创建睡眠阶段表成功")
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS location (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            longitude DECIMAL(10, 6) NOT NULL,
+            latitude DECIMAL(10, 6) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            create_time DATETIME NOT NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1
+        )
+        """)
+        logger.info(f"创建位置表成功")
+
 
 
     connection.commit()
