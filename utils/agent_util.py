@@ -233,15 +233,20 @@ class Agent:
             return f"【ERROR】: {e}"
 
 
-    # TODO: 压缩未测试
     def compact_history(self):
         compact_time = datetime.datetime.now()
         compact_agent = agents["compact"]
         # 保留最近6条消息不压缩
-        self.conversation_not_in_compact_indx = len(compact_agent.conversation) - 6
+        num_not_compact = 6
+        self.conversation_not_in_compact_indx = len(self.conversation) - 6
+        while self.conversation[self.conversation_not_in_compact_indx]["role"] != "user":
+            self.conversation_not_in_compact_indx -= 1
+            num_not_compact += 1
+        logger.info(f"将会保留的对话记录{self.conversation[self.conversation_not_in_compact_indx:]}")
         # 压缩消息
         compact_content = self.conversation[1:-6].copy()
-        res = compact_agent.chat(str(compact_content), message_type="system")
+        res = compact_agent.chat(f"你是系统agent,不需要模仿设定的语气,接下来请按照【Assistant设定】保留重要的信息生成摘要记录，以Assistant和用户来指代对话的角色,压缩以下历史对话记录：\n{str(compact_content)}", message_type="system")
+        logger.info(f"压缩历史对话记录结果: {res}")
         # 更新系统提示
         new_system_prompt = self.system_prompt + "【历史对话记录摘要】：\n" + res
         # 新的对话记录
@@ -249,7 +254,7 @@ class Agent:
         # 重置 Token 数量
         self.total_tokens = 0
         # 标记压缩短期记忆数据
-        short_term_memory_orm_obj.compact(compact_time)
+        short_term_memory_orm_obj.compact(compact_time, num_not_compact)
         # 新增中期记忆
         mid_term_memory_orm_obj.insert(res)
 

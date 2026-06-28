@@ -56,6 +56,9 @@ async def delayed_call():
 
 @router.post("/api/chat/send", summary="发送消息", description="向 AI 发送消息并获取响应")
 async def chat_send(message: str = Body(..., embed=True, description="用户消息", examples=["你好，今天天气怎么样？"])):
+    if message == "/compact":
+        agent_util.agents["chat"].compact_history()
+        return {"status": "received"}
     global delay_task
 
     message_buffer.append(("text", message))
