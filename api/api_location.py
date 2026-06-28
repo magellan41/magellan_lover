@@ -15,17 +15,15 @@ location_orm_obj = LocationOrm()
 
 @router.post("/api/location/load", summary="上传地理位置数据", description="上传地理位置数据")
 async def load_location(data: LocationModel):
-    res = location_util.reverse_geocoding(data.longitude, data.latitude)
-    address = res.split("：")[1]
+    address = location_util.reverse_address(data.longitude, data.latitude)
     logger.debug(f"location load: {data}, address: {address}")
     location_orm_obj.insert(data, address)
-    return JSONResponse(content={"message": res})
+    return JSONResponse(content={"message": address})
 
 
 @router.post("/api/location/query", summary="查询地理位置数据", description="查询地理位置数据")
 async def query_location(data: LocationPoiQueryModel):
-    res = location_util.reverse_geocoding(data.longitude, data.latitude, data.poi_type_list)
-    address = res.split("：")[1]
-    logger.debug(f"location query: {data}, address: {address}")
+    res = location_util.reverse_geocoding(data.poi_type_list)
+    logger.debug(f"location query: {data}, address: {res}")
     return JSONResponse(content={"message": res})
 

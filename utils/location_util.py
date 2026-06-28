@@ -14,6 +14,20 @@ POI_TYPE_CODE_DIC = {
     "购物服务": "060000",
 }
 
+def reverse_address(longitude, latitude):
+    reverse_geocode_url = "https://restapi.amap.com/v3/geocode/regeo"
+    param = {
+        "key": os.getenv("AMAP_API_KEY"),
+        "location": f"{longitude},{latitude}",
+        "output": "json"
+    }
+    response = requests.get(reverse_geocode_url, params=param)
+    response.raise_for_status()
+    response_json = response.json()
+    if response_json["status"] != "1":
+        raise RuntimeError(f"地址解析失败，错误信息：{response_json['info']}")
+    return response_json["regeocode"]["formatted_address"]
+
 
 def reverse_geocoding(poi_type_list=None):
     reverse_geocode_url = "https://restapi.amap.com/v3/geocode/regeo"
