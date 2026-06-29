@@ -19,7 +19,10 @@ class SleepSessionORM:
             # 睡眠会话数据
             for session_data in health_data.sleep.sessions:
                 # 检查是否存在相同结束时间的会话
-                existence = self.select_unique_mark(session_data.end_time)
+                # existence = self.select_unique_mark(session_data.end_time)
+                time_tolerance = datetime.timedelta(seconds=1)
+                existence = session.query(SleepSession).filter(
+                    SleepSession.end_time.between(session_data.end_time - time_tolerance, session_data.end_time + time_tolerance)).first()
                 if existence is not None:
                     continue
                 session_orm = SleepSession(
@@ -75,7 +78,8 @@ class StepORM:
     def insert(self, health_data: HealthModel):
         session = sql_session.get_session()
         try:
-            existence = self.select_unique_mark(health_data.synced_at)
+            today = datetime.datetime.today()
+            existence = session.query(Step).filter(Step.synced_time >= today, Step.steps == health_data.steps).first()
             if existence is not None:
                 return
             current_time = datetime.datetime.now()
@@ -92,11 +96,11 @@ class StepORM:
         finally:
             session.close()
 
-    def select_unique_mark(self, synced_time):
+    def select_unique_mark(self, steps: int):
+        today =datetime.datetime.today()
         session = sql_session.get_session()
         try:
-            time_tolerance = datetime.timedelta(seconds=1)
-            existence = session.query(Step).filter(Step.synced_time.between(synced_time - time_tolerance, synced_time + time_tolerance)).first()
+            existence = session.query(Step).filter(Step.synced_time >= today, Step.steps == steps).first()
             return existence
         finally:
             session.close()
@@ -120,7 +124,9 @@ class HeartRateORM:
     def insert(self, health_data: HealthModel):
         session = sql_session.get_session()
         try:
-            existence = self.select_heart_rate(health_data.heart_rate.latest_time)
+            # existence = self.select_heart_rate(health_data.heart_rate.latest_time)
+            time_tolerance = datetime.timedelta(seconds=1)
+            existence = session.query(HeartRate).filter(HeartRate.synced_time.between(health_data.heart_rate.latest_time - time_tolerance, health_data.heart_rate.latest_time + time_tolerance)).first()
             if existence is not None:
                 return
             current_time = datetime.datetime.now()
