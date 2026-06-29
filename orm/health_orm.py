@@ -51,7 +51,8 @@ class SleepSessionORM:
     def select_unique_mark(self, synced_time):
         session = sql_session.get_session()
         try:
-            existence = session.query(SleepSession).filter(SleepSession.end_time == synced_time).scalar()
+            time_tolerance = datetime.timedelta(seconds=1)
+            existence = session.query(SleepSession).filter(SleepSession.end_time.between(synced_time - time_tolerance, synced_time + time_tolerance)).first()
             return existence
         finally:
             session.close()
@@ -94,7 +95,8 @@ class StepORM:
     def select_unique_mark(self, synced_time):
         session = sql_session.get_session()
         try:
-            existence = session.query(Step).filter(Step.synced_time == synced_time).first()
+            time_tolerance = datetime.timedelta(seconds=1)
+            existence = session.query(Step).filter(Step.synced_time.between(synced_time - time_tolerance, synced_time + time_tolerance)).first()
             return existence
         finally:
             session.close()
@@ -143,7 +145,8 @@ class HeartRateORM:
     def select_heart_rate(self, synced_time):
         session = sql_session.get_session()
         try:
-            existence = session.query(HeartRate).filter(HeartRate.synced_time == synced_time).first()
+            time_tolerance = datetime.timedelta(seconds=1)
+            existence = session.query(HeartRate).filter(HeartRate.synced_time.between(synced_time - time_tolerance, synced_time + time_tolerance)).first()
             return existence
         finally:
             session.close()

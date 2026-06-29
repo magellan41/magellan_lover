@@ -22,7 +22,8 @@ async def health(data: HealthModel):
     # 打印到控制台查看
     logger.debug(f"health load: {data}")
     # 插入健康数据
-    heart_rate_orm_obj.insert(data)
+    if data.heart_rate.sample_count != 0:
+        heart_rate_orm_obj.insert(data)
     sleep_session_orm_obj.insert(data)
     step_orm_obj.insert(data)
 
