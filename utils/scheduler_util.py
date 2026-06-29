@@ -1,3 +1,6 @@
+import datetime
+import uuid
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -25,6 +28,31 @@ def add_scheduler_job(func, trigger, task_id):
         id=task_id,
         replace_existing=False
     )
+
+from orm.remind_orm import RemindORM
+remind_orm_obj = RemindORM()
+
+def add_artificial_task(trigger_time: datetime.datetime, task_name: str, prompt: str):
+    task_id = uuid.uuid4().hex
+    trigger = DateTrigger(run_date=trigger_time)
+    async def task_wrapper():
+        try:
+            logger.info(f"正在执行任务: {task_name} (ID: {task_id})")
+            await agent_util.trigger_agent([("text", "系统提示提醒内容提示：" + prompt)], task_name)
+            # 删除数据库中的任务
+            remind_orm_obj.delete(task_id)
+            # 阅后即焚
+            remove_scheduler_job(task_id)
+            logger.info(f"任务 {task_name} (ID: {task_id}) 已阅后即焚")
+        except Exception as e:
+            logger.error(f"任务 {task_name} 执行失败: {e}")
+
+    add_scheduler_job(task_wrapper, trigger, task_id)
+    remind_orm_obj.insert(task_id=task_id, task_name=task_name, prompt=prompt, trigger_time=trigger_time)
+    return {
+        "message": "Task created successfully",
+        "task_id": task_id
+    }
 
 def init_scheduler():
     # 每1-10分钟执行一次，主动与用户互动

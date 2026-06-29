@@ -90,6 +90,7 @@ from api.api_agent_work import router as agent_work_router
 from api.api_device import router as device_router
 from api.api_health import router as health_router
 from api.api_location import router as location_router
+from api.api_schedule import router as schedule_router_router
 
 
 app.include_router(chat_router)
@@ -100,6 +101,7 @@ app.include_router(agent_work_router)
 app.include_router(device_router)
 app.include_router(health_router)
 app.include_router(location_router)
+app.include_router(schedule_router_router)
 
 from fastapi.staticfiles import StaticFiles
 app.mount("/static", StaticFiles(directory=setting.STATIC_PATH), name="static")
