@@ -70,6 +70,10 @@ class SleepSessionORM:
         finally:
             session.close()
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 @singleton
 class StepORM:
     def __init__(self):
@@ -78,7 +82,7 @@ class StepORM:
     def insert(self, health_data: HealthModel):
         session = sql_session.get_session()
         try:
-            today = datetime.datetime.today()
+            today = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
             existence = session.query(Step).filter(Step.synced_time >= today, Step.steps == health_data.steps).first()
             if existence is not None:
                 return
