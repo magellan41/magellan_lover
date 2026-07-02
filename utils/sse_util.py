@@ -70,6 +70,9 @@ async def notify_all(response_data):
         logger.debug(f"清理后内容: {content}")
 
     # content_list = content.split("\n\n")
+
+    show_flag = "true" if flag else "false"
+
     split_pattern = r'(\n|<selfie>.*?</selfie>|<memes>.*?</memes>)'
     content_list = [part for part in re.split(split_pattern, content) if part]
     logger.debug(f"split后内容列表: {content_list}")
@@ -77,12 +80,19 @@ async def notify_all(response_data):
         sleep_trme = 0.3
         push_content = item
         item = item.strip()
+
+        message_type = "text"
+        duration_seconds = 0.0
+        message_content = ""
+
         if item == "" or item == r"\n\n" or item == r"\n" or item == r"<selfie>" or item == r"</selfie>":
             continue
         if item.startswith("<selfie>"):
             item = item.replace("<selfie>", "").replace("</selfie>", "")
-            dialogue_history_orm_obj.insert(item, "agent", "image")
-            item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            # dialogue_history_orm_obj.insert(item, "agent", "image")
+            # item =  f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            message_type = "image"
+            message_content = item
             # 自拍不用添加延时
             push_content = "[自拍]"
         elif item.startswith("<memes>"):
@@ -90,40 +100,53 @@ async def notify_all(response_data):
             try:
                 id = int(item)
                 memes_obj = memes_orm_obj.select_by_id(id)
-                dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                # dialogue_history_orm_obj.insert(memes_obj.url, "agent", "image")
+                # item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"image\", \"content\": \"{memes_obj.url}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                message_type = "image"
+                message_content = memes_obj.url
                 # 表情包不用添加延时
                 push_content = "[表情包]"
             except Exception as e:
                 logger.error(f"memes error: {e}")
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                # item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"尝试发送表情包{item}失败:{e}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                message_type = "text"
+                message_content = f"尝试发送表情包{item}失败:{e}"
         elif voice_flag:
             success, voice_path, duration_seconds = voice_generation(item)
             logger.debug(f"voice_generation success: {success}, voice_path: {voice_path}, duration_seconds: {duration_seconds}")
             if success:
                 item = voice_path
-                dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
+                # dialogue_history_orm_obj.insert(item, "agent", "voice", duration_seconds=duration_seconds)
+                # item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"voice\", \"content\": \"{item}\", \"duration_seconds\": {duration_seconds}, \"role\": \"agent\"}}"
+                message_type = "voice"
+                message_content = item
                 # 语音需要添加语音长度/2的延时
                 push_content = "[语音]"
                 sleep_trme += duration_seconds / 2
         # 发送文本逻辑不用修改提示内容
             else:
                 # 语音合成失败，直接插入文本
-                dialogue_history_orm_obj.insert(item, "agent", "text")
+                # dialogue_history_orm_obj.insert(item, "agent", "text")
                 push_util.send_push_meizu(tag, item)
-                item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                # item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+                message_type = "text"
+                message_content = item
                 sleep_trme += text_delay(item)
         else:
-            dialogue_history_orm_obj.insert(item, "agent", "text")
-            item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            # dialogue_history_orm_obj.insert(item, "agent", "text")
+            # item = f"{{\"flag\": \"{"true" if flag else "false"}\", \"type\": \"text\", \"content\": \"{item}\", \"role\": \"agent\", \"duration_seconds\": 0.0}}"
+            message_type = "text"
+            message_content = item
             sleep_trme += text_delay(item)
 
         # 将 Agent 的响应封装并推入 SSE 管道
         # await sse_push_queue.put(response_data)
+        result = f"{{\"flag\": \"{show_flag}\", \"type\": \"{message_type}\", \"content\": \"{message_content}\", \"role\": \"agent\", \"duration_seconds\": {duration_seconds}}}"
         await asyncio.sleep(sleep_trme)
         if active_connections:
             await asyncio.gather(*[
-                conn_queue.put(item) for conn_queue in active_connections
+                conn_queue.put(result) for conn_queue in active_connections
             ])
         push_util.send_push_meizu(tag, push_content)
+        dialogue_history_orm_obj.insert(message_content, "agent", message_type, duration_seconds=duration_seconds)
+
