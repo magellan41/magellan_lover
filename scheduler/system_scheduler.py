@@ -65,7 +65,7 @@ async def active_interaction():
         minutes, seconds = divmod(remainder, 60)
         logger.debug(f"距离上次对话 {hours} 小时 {minutes} 分钟 {seconds} 秒")
         # 主动发起对话
-        await agent_util.trigger_agent([("text", f"距离上次与用户对话 {hours} 小时 {minutes} 分钟 {seconds} 秒，你可以尝试发起与用户的对话。")], "system")
+        await agent_util.trigger_agent([("text", f"距离上次与用户对话 {hours} 小时 {minutes} 分钟 {seconds} 秒，你可以尝试主动发起与用户的对话，也可以将flag设置为false暂步发起对话。")], "system")
 
 
 # ==================================记忆清理任务=====================================
@@ -227,3 +227,10 @@ async def diary_task():
         res = await asyncio.to_thread(agent_util.agents["chat"].diary, prompt)
         logger.info(f"写日记: {res}")
         diary_orm_obj.insert(res)
+
+
+
+# ==================================记忆压缩任务=====================================
+async def compact_memory():
+    await asyncio.to_thread(agent_util.agents["chat"].compact_history)
+

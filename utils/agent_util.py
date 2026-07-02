@@ -112,7 +112,7 @@ class Agent:
         logger.debug(f"conversation: {self.conversation}")
 
 
-    def add_message(self, role, message):
+    def add_message(self, role, message, tokens=0):
         if role == "tool":
             message_in_conversation = {"role": role, "content": message["content"], "tool_call_id": message["tool_call_id"]}
         elif role == "assistant" or role is None:
@@ -126,7 +126,7 @@ class Agent:
 
         message_in_db = json.dumps(message_in_conversation, ensure_ascii=False)
         logger.debug(f" role: {role}, type: {type(message_in_db)} message_in_db: {message_in_db}")
-        short_term_memory_orm_obj.insert(role, message_in_db, 0)
+        short_term_memory_orm_obj.insert(role, message_in_db, tokens)
 
     def diary(self, prompt):
         _conversations = self.conversation.copy()
@@ -180,7 +180,7 @@ class Agent:
                     continue
                 # logger.info(f"回复消息: {res}")
                 if self.continuous_dialogue and response_message:
-                    self.add_message("assistant", response_message)
+                    self.add_message("assistant", response_message, tokens_used)
                 # tool_call处理
                 if response_message.get("tool_calls"):
                     if self.agent_type == "chat" and response_message.get("content"):

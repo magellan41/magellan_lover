@@ -7,7 +7,7 @@ from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from scheduler.system_scheduler import active_interaction, memory_clear, daily_schedule_task, detail_schedule_task, \
-    diary_task
+    diary_task, compact_memory
 
 import logging
 
@@ -67,10 +67,16 @@ def init_scheduler():
         trigger=CronTrigger(hour=2, minute=30),
         id="diary_task"
     )
-    # 每天凌晨3点12分执行一次，清除记忆
+    # 每天凌晨3点执行一次，压缩记忆
+    _scheduler.add_job(
+        func=compact_memory,
+        trigger=CronTrigger(hour=3),
+        id="compact_memory_task"
+    )
+    # 每天凌晨3点30分执行一次，清除记忆
     _scheduler.add_job(
         func=memory_clear,
-        trigger=CronTrigger(hour=3, minute=12),
+        trigger=CronTrigger(hour=3, minute=30),
         id="memory_clear_task"
     )
     # 四点半生成当天的日程
